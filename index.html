@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>רומא ❤️ הילית ולב</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;900&family=Secular+One&display=swap');
+
+        :root {
+            --primary: #d90429; /* אדום עמוק ואלגנטי */
+            --secondary: #ff8fa3; /* ורוד חם */
+            --card-bg: rgba(255, 255, 255, 0.95);
+            --text-main: #2b2d42;
+            --bg-gradient-1: #fce3e6;
+            --bg-gradient-2: #f7c8d0;
+            --bg-gradient-3: #ffb6c1;
+            --bg-gradient-4: #ffc0cb;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Rubik', sans-serif;
+            margin: 0;
+            padding: 0 15px 15px 15px;
+            overflow-x: hidden;
+            color: var(--text-main);
+            background: linear-gradient(-45deg, var(--bg-gradient-1), var(--bg-gradient-2), var(--bg-gradient-3), var(--bg-gradient-4));
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+            /* הסתרת כפתורי עריכה במצב קריאה בלבד */
+            body.read-only .delete-btn,
+            body.read-only .add-btn {
+                display: none !important;
+            }
+
+        /* פס עליון לכפתור ההתחברות - פותר את בעיית ההסתרה בנייד */
+        .top-bar {
+            display: flex;
+            justify-content: flex-end;
+            padding: 15px 0;
+            width: 100%;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        .auth-btn {
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid var(--primary);
+            color: var(--primary);
+            padding: 8px 20px;
+            border-radius: 25px;
+            font-family: 'Rubik', sans-serif;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            box-shadow: 0 4px 10px rgba(217, 4, 41, 0.15);
+        }
+
+            .auth-btn:hover {
+                background: var(--primary);
+                color: white;
+                box-shadow: 0 6px 15px rgba(217, 4, 41, 0.3);
+                transform: translateY(-2px);
+            }
+
+        .heart-float {
+            position: fixed;
+            bottom: -10vh;
+            font-size: 1.8rem;
+            animation: floatUp 6s linear forwards;
+            opacity: 0.5;
+            z-index: -1;
+            pointer-events: none;
+            filter: drop-shadow(0 0 5px rgba(255,255,255,0.5));
+        }
+
+        .header {
+            text-align: center;
+            animation: popIn 1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-family: 'Secular One', sans-serif;
+            font-size: clamp(2.5em, 8vw, 4em); /* גודל דינמי למסכים שונים */
+            margin: 0;
+            color: var(--primary);
+            text-shadow: 3px 3px 6px rgba(217, 4, 41, 0.15);
+            line-height: 1.1;
+        }
+
+        .subtitle {
+            font-size: clamp(1em, 4vw, 1.3em);
+            color: #b51735;
+            font-weight: 700;
+            margin-top: 5px;
+            margin-bottom: 20px;
+            animation: pulseText 3s infinite;
+        }
+
+        .flight-bar {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+
+        .flight-card {
+            background: var(--card-bg);
+            padding: 14px 22px;
+            border-radius: 30px;
+            box-shadow: 0 5px 15px rgba(217, 4, 41, 0.1);
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.95em;
+            border: 1px solid rgba(255, 143, 163, 0.4);
+            backdrop-filter: blur(8px);
+            transition: all 0.3s ease;
+        }
+
+            .flight-card:hover {
+                transform: scale(1.03) translateY(-3px);
+                box-shadow: 0 8px 20px rgba(217, 4, 41, 0.2);
+                border-color: var(--primary);
+            }
+
+        .board {
+            display: flex;
+            gap: 25px;
+            padding: 10px 10px 40px 10px;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+        }
+
+        @media (min-width: 768px) {
+            .board {
+                flex-direction: row;
+                overflow-x: auto;
+                align-items: flex-start;
+                scroll-snap-type: x mandatory;
+            }
+        }
+
+        .day-column {
+            background: rgba(255, 255, 255, 0.65);
+            width: 100%;
+            max-width: 420px;
+            border-radius: 24px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(217, 4, 41, 0.08);
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            animation: slideInUp 0.8s ease-out backwards;
+            backdrop-filter: blur(12px);
+            border: 2px solid rgba(255,255,255,0.8);
+            transition: transform 0.4s ease;
+        }
+
+            .day-column:hover {
+                transform: translateY(-5px);
+            }
+
+        @media (min-width: 768px) {
+            .day-column {
+                min-width: 340px;
+                scroll-snap-align: start;
+            }
+        }
+
+        .day-title {
+            text-align: center;
+            font-size: 1.7em;
+            font-family: 'Secular One', sans-serif;
+            color: #b51735;
+            border-bottom: 3px dashed var(--secondary);
+            padding-bottom: 12px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+            .day-title:focus, .editable:focus {
+                background: rgba(255, 255, 255, 0.95);
+                border-radius: 10px;
+                box-shadow: 0 0 0 2px var(--secondary);
+                padding: 5px;
+            }
+
+        .activities-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            min-height: 60px;
+        }
+
+        .activity-card {
+            background: var(--card-bg);
+            border-right: 6px solid var(--secondary);
+            padding: 18px;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+            position: relative;
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+            .activity-card:hover {
+                transform: translateX(-5px) scale(1.02);
+                box-shadow: 0 8px 25px rgba(217, 4, 41, 0.15);
+                border-right-color: var(--primary);
+            }
+
+        .activity-time {
+            font-weight: 900;
+            color: var(--primary);
+            font-size: 1.2em;
+            margin-bottom: 8px;
+            outline: none;
+        }
+
+        .activity-desc {
+            font-size: 1.05em;
+            line-height: 1.5;
+            outline: none;
+            color: #333;
+        }
+
+            .activity-desc iframe {
+                max-width: 100%;
+                border-radius: 12px;
+                border: 2px solid var(--secondary);
+                margin-top: 12px;
+                background: #fff;
+                box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            }
+
+        .delete-btn {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            background: rgba(217, 4, 41, 0.1);
+            border: none;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            color: var(--primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            transition: all 0.3s;
+        }
+
+            .delete-btn:hover {
+                background: var(--primary);
+                color: white;
+                transform: scale(1.15) rotate(90deg);
+            }
+
+        .add-btn {
+            background: linear-gradient(135deg, #ff8fa3 0%, #ff4d6d 100%);
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 15px;
+            font-family: 'Rubik', sans-serif;
+            font-weight: 700;
+            font-size: 1.1em;
+            cursor: pointer;
+            margin-top: auto;
+            box-shadow: 0 6px 15px rgba(255, 77, 109, 0.3);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+        }
+
+            .add-btn:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 8px 20px rgba(255, 77, 109, 0.5);
+            }
+
+            .add-btn:active {
+                transform: scale(0.96);
+            }
+
+        /* פוטר */
+        .footer {
+            text-align: center;
+            padding: 25px;
+            margin-top: 20px;
+            font-size: 1.1em;
+            color: var(--primary);
+            font-family: 'Rubik', sans-serif;
+            font-weight: 500;
+            border-top: 2px dashed rgba(255, 143, 163, 0.5);
+            background: rgba(255, 255, 255, 0.4);
+            border-radius: 24px 24px 0 0;
+            animation: slideInUp 1s ease-out backwards;
+            backdrop-filter: blur(5px);
+        }
+
+        /* אנימציות */
+        @keyframes gradientBG {
+            0% {
+                background-position: 0% 50%;
+            }
+
+            50% {
+                background-position: 100% 50%;
+            }
+
+            100% {
+                background-position: 0% 50%;
+            }
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes popIn {
+            from {
+                opacity: 0;
+                transform: scale(0.85);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        @keyframes fadeOutScale {
+            to {
+                opacity: 0;
+                transform: scale(0.85) translateY(15px);
+            }
+        }
+
+        @keyframes floatUp {
+            to {
+                transform: translateY(-120vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        @keyframes pulseText {
+            0% {
+                opacity: 0.85;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 1;
+                transform: scale(1.03);
+            }
+
+            100% {
+                opacity: 0.85;
+                transform: scale(1);
+            }
+        }
+
+        .removing {
+            animation: fadeOutScale 0.3s forwards !important;
+        }
+    </style>
+</head>
+<body class="read-only">
+
+    <div class="top-bar">
+        <button id="auth-btn" class="auth-btn">התחבר</button>
+    </div>
+
+    <div class="header">
+        <h1 class="editable" contenteditable="false" spellcheck="false" id="trip-title">חופשה ברומא <br/> (וואי וואי וואי)</h1>
+        <div class="subtitle editable" contenteditable="false">רק את, אני והעיר</div>
+
+        <div class="flight-bar">
+            <div class="flight-card editable" contenteditable="false">✈️ 24 במרץ: המראה 11:10 ➔ נחיתה 14:05</div>
+            <div class="flight-card editable" contenteditable="false">🛬 29 במרץ: המראה 14:15 ➔ בית 18:45</div>
+        </div>
+    </div>
+
+    <div class="board" id="trip-board">
+        <div class="day-column">
+            <div class="day-title editable" contenteditable="false">יום 1 - הגעה 🍷</div>
+            <div class="activities-container">
+                <div class="activity-card">
+                    <button class="delete-btn" onclick="window.removeCard(this)">×</button>
+                    <div class="activity-time editable" contenteditable="false">14:05</div>
+                    <div class="activity-desc editable" contenteditable="false">נוחתים ברומא! אוספים מזוודות ונוסעים למלון.</div>
+                </div>
+            </div>
+            <button class="add-btn" onclick="window.addActivity(this)">➕ הוסף תוכנית רומנטית</button>
+        </div>
+
+        <div class="day-column">
+            <div class="day-title editable" contenteditable="false">יום 2 - חוקרים את העיר 🏛️</div>
+            <div class="activities-container"></div>
+            <button class="add-btn" onclick="window.addActivity(this)">➕ הוסף תוכנית רומנטית</button>
+        </div>
+
+        <div class="day-column">
+            <div class="day-title editable" contenteditable="false">יום 3 - הוותיקן ⛪</div>
+            <div class="activities-container"></div>
+            <button class="add-btn" onclick="window.addActivity(this)">➕ הוסף תוכנית רומנטית</button>
+        </div>
+
+        <div class="day-column">
+            <div class="day-title editable" contenteditable="false">יום 4 - קסם הפסטה 🍝</div>
+            <div class="activities-container"></div>
+            <button class="add-btn" onclick="window.addActivity(this)">➕ הוסף תוכנית רומנטית</button>
+        </div>
+
+        <div class="day-column">
+            <div class="day-title editable" contenteditable="false">יום 5 - משאלות בטרווי 🪙</div>
+            <div class="activities-container"></div>
+            <button class="add-btn" onclick="window.addActivity(this)">➕ הוסף תוכנית רומנטית</button>
+        </div>
+
+        <div class="day-column">
+            <div class="day-title editable" contenteditable="false">יום 6 - אריוודרצ'י ✈️</div>
+            <div class="activities-container">
+                <div class="activity-card" style="border-right-color: var(--primary);">
+                    <button class="delete-btn" onclick="window.removeCard(this)">×</button>
+                    <div class="activity-time editable" contenteditable="false">14:15</div>
+                    <div class="activity-desc editable" contenteditable="false">טיסה חזרה. זיכרונות לתמיד! ❤️</div>
+                </div>
+            </div>
+            <button class="add-btn" onclick="window.addActivity(this)">➕ הוסף תוכנית רומנטית</button>
+        </div>
+    </div>
+
+    <div class="footer">
+        ❤️ נבנה על ידי לב שאוהב אותך מאוד ❤️
+    </div>
+
+    <script>
+        function createHeart() {
+            const heart = document.createElement('div');
+            heart.classList.add('heart-float');
+            heart.innerText = '❤️';
+            heart.style.left = Math.random() * 100 + 'vw';
+            heart.style.animationDuration = (Math.random() * 4 + 4) + 's';
+
+            const emojis = ['❤️', '✨', '🍷', '🍝', '🍕', '💖'];
+            heart.innerText = emojis[Math.floor(Math.random() * emojis.length)];
+            if (heart.innerText !== '❤️' && heart.innerText !== '💖') heart.style.opacity = "0.3";
+
+            document.body.appendChild(heart);
+            setTimeout(() => { heart.remove(); }, 8000);
+        }
+        setInterval(createHeart, 800);
+
+        window.addActivity = function (button) {
+            const container = button.previousElementSibling;
+            const newCard = document.createElement('div');
+            newCard.className = 'activity-card';
+            newCard.innerHTML = `
+                    <button class="delete-btn" onclick="window.removeCard(this)">×</button>
+                    <div class="activity-time editable" contenteditable="true">00:00</div>
+                    <div class="activity-desc editable" contenteditable="true">פעילות חדשה ומרגשת...</div>
+                `;
+            container.appendChild(newCard);
+            newCard.querySelector('.activity-time').focus();
+            window.triggerSave();
+        };
+
+        window.removeCard = function (button) {
+            const card = button.parentElement;
+            card.classList.add('removing');
+            setTimeout(() => {
+                card.remove();
+                window.triggerSave();
+            }, 300);
+        };
+
+        document.getElementById('trip-board').addEventListener('paste', function (e) {
+            if (e.target.classList.contains('activity-desc')) {
+                let pasteText = (e.clipboardData || window.clipboardData).getData('text');
+                if (pasteText.trim().match(/^https?:\/\/[^\s]+$/)) {
+                    e.preventDefault();
+                    const url = pasteText.trim();
+                    const iframeHTML = `<br><iframe src="${url}" height="180" title="Link preview"></iframe><br><a href="${url}" target="_blank" style="font-size: 0.85em; color: var(--secondary); font-weight: bold; text-decoration: none;">🔗 פתח קישור בחלון חדש</a><br>`;
+                    document.execCommand("insertHTML", false, iframeHTML);
+                    window.triggerSave();
+                }
+            }
+        });
+    </script>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCvcLHpYg6jsplyC1ebrszGyjoDl86jCyc",
+            authDomain: "rome-f4a3f.firebaseapp.com",
+            projectId: "rome-f4a3f",
+            storageBucket: "rome-f4a3f.firebasestorage.app",
+            messagingSenderId: "20874428433",
+            appId: "1:20874428433:web:0cdf1a9935ce03f209f1b0",
+            measurementId: "G-SWEH8Y0NPX"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        const provider = new GoogleAuthProvider();
+
+        const tripDocRef = doc(db, "itineraries", "rome_trip_hebrew_love");
+        const boardElement = document.getElementById('trip-board');
+        const authBtn = document.getElementById('auth-btn');
+
+        const allowedEmails = ['hilit101010@gmail.com', 'levloovmordehai@gmail.com'];
+        let hasEditAccess = false;
+        let isEditing = false;
+        let saveTimeout;
+
+        function applyEditState() {
+            const elements = document.querySelectorAll('.editable');
+            elements.forEach(el => {
+                el.setAttribute('contenteditable', hasEditAccess ? "true" : "false");
+            });
+        }
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                if (allowedEmails.includes(user.email)) {
+                    hasEditAccess = true;
+                    document.body.classList.remove('read-only');
+                    authBtn.innerText = "התנתק (מצב עריכה פתוח)";
+                } else {
+                    hasEditAccess = false;
+                    document.body.classList.add('read-only');
+                    authBtn.innerText = "אין הרשאה - התנתק";
+                    alert("מחובר עם האימייל " + user.email + " אך אין הרשאת עריכה.");
+                }
+            } else {
+                hasEditAccess = false;
+                document.body.classList.add('read-only');
+                authBtn.innerText = "התחבר לעריכה";
+            }
+            applyEditState();
+        });
+
+        authBtn.addEventListener('click', () => {
+            if (auth.currentUser) {
+                signOut(auth);
+            } else {
+                signInWithPopup(auth, provider).catch(error => {
+                    console.error("שגיאת התחברות:", error);
+                });
+            }
+        });
+
+        onSnapshot(tripDocRef, (docSnap) => {
+            if (docSnap.exists() && !isEditing) {
+                boardElement.innerHTML = docSnap.data().boardHTML;
+                applyEditState();
+            }
+        });
+
+        window.triggerSave = function () {
+            if (!hasEditAccess) return;
+
+            clearTimeout(saveTimeout);
+            saveTimeout = setTimeout(async () => {
+                try {
+                    await setDoc(tripDocRef, {
+                        boardHTML: boardElement.innerHTML,
+                        lastUpdated: new Date().toISOString()
+                    }, { merge: true });
+                } catch (e) {
+                    console.error("Error saving to Firebase:", e);
+                }
+            }, 1000);
+        };
+
+        boardElement.addEventListener('focusin', () => isEditing = true);
+        boardElement.addEventListener('focusout', () => {
+            isEditing = false;
+            window.triggerSave();
+        });
+
+        boardElement.addEventListener('input', window.triggerSave);
+    </script>
+</body>
+</html>
