@@ -1,0 +1,79 @@
+﻿<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <title>כניסה למוזיאון</title>
+    <link rel="icon" type="image/x-icon" href="heart_logo.png">
+
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background-color: #000;
+            overflow: hidden;
+        }
+
+        #door-container {
+            width: 100vw;
+            height: 100vh;
+            background-image: url('museudm_door.jpg'); /* תמונת הכניסה למוזיאון */
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: transform 2s cubic-bezier(0.7, 0, 0.3, 1), filter 2s, opacity 2s;
+            cursor: pointer;
+        }
+
+        .enter-text {
+            background: rgba(0,0,0,0.7);
+            color: gold;
+            padding: 15px 30px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 2rem;
+            border: 2px solid gold;
+            border-radius: 5px;
+            animation: pulse 2s infinite;
+            text-shadow: 0 0 10px gold;
+        }
+
+        /* אנימציית הזום פנימה לתוך הדלת */
+        .entering {
+            transform: scale(5); /* זום אגרסיבי פנימה */
+            filter: blur(10px) brightness(0); /* משחיר ומטשטש */
+            opacity: 0;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                box-shadow: 0 0 10px gold;
+                transform: scale(1);
+            }
+
+            50% {
+                box-shadow: 0 0 30px gold;
+                transform: scale(1.05);
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="door-container" onclick="enterMuseum()">
+        <div class="enter-text">היכנסי למוזיאון</div>
+    </div>
+
+    <script>
+        function enterMuseum() {
+            document.getElementById('door-container').classList.add('entering');
+            // אחרי שהאנימציה מסתיימת, עוברים למוזיאון ה-3D
+            setTimeout(() => {
+                window.location.href = "museum.html";
+            }, 1800);
+        }
+    </script>
+
+</body>
+</html>

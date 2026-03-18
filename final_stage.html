@@ -1,0 +1,772 @@
+﻿<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>שלב הגמר - פאזל האהבה</title>
+    <link href="https://fonts.googleapis.com/css2?family=Amatic+SC:wght@700&family=Heebo:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/x-icon" href="heart_logo.png">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+            touch-action: none; /* מונע גלילה בטלפון כשגוררים חלקים */
+        }
+
+        body {
+            /* רקע אחיד ונקי לכל המסך */
+            background: radial-gradient(circle at center, #2e0814 0%, #000000 100%);
+            height: 100vh;
+            overflow: hidden;
+            font-family: 'Heebo', sans-serif;
+            color: white;
+        }
+
+        /* --- פתיח סינמטי (המסך השחור) --- */
+        #intro-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #000;
+            z-index: 99999; /* מעל הכל */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 2s ease-in-out;
+        }
+
+        .intro-text {
+            position: absolute;
+            color: #fff;
+            font-family: 'Amatic SC', cursive;
+            font-size: 5rem;
+            opacity: 0;
+            transition: opacity 1.5s ease-in-out;
+            text-align: center;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+        }
+
+            .intro-text.visible {
+                opacity: 1;
+            }
+
+        .main-title {
+            position: absolute;
+            top: 20px;
+            width: 100%;
+            text-align: center;
+            font-size: 3.5rem;
+            color: #d4af37;
+            font-family: 'Amatic SC', cursive;
+            text-shadow: 0 0 15px rgba(212, 175, 55, 0.8);
+            animation: float-title 3s ease-in-out infinite;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        @keyframes float-title {
+            0%, 100% {
+                transform: translateY(0);
+                text-shadow: 0 0 15px rgba(212, 175, 55, 0.8);
+            }
+
+            50% {
+                transform: translateY(-5px);
+                text-shadow: 0 0 25px rgba(212, 175, 55, 1);
+            }
+        }
+
+        .skip-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: transparent;
+            color: rgba(255, 255, 255, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 5px 15px;
+            font-size: 12px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: 0.3s;
+            z-index: 1000;
+            outline: none;
+        }
+
+            .skip-btn:hover {
+                background: rgba(255, 255, 255, 0.1);
+                color: white;
+                border-color: white;
+            }
+
+        /* קנבס מנוע הפאזל תופס את כל המסך */
+        #forPuzzle {
+            position: absolute;
+            width: 100vw;
+            height: 100vh;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+
+        /* --- מנגנון תלת הממד (הכרטיס המתהפך שמופיע רק בניצחון) --- */
+        #flip-container {
+            perspective: 2000px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 20;
+            display: none; /* מוסתר עד הניצחון */
+        }
+
+        .flipper {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transition: transform 1.5s cubic-bezier(0.68, -0.15, 0.265, 1.15);
+            transform-style: preserve-3d;
+        }
+
+        #flip-container.flipped .flipper {
+            transform: rotateY(180deg) scale(1.05);
+        }
+
+        .front-puzzle-img, .back-letter {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 10px;
+            box-shadow: 0 0 50px rgba(212, 175, 55, 0.5);
+            border: 3px solid #d4af37;
+        }
+
+        .front-puzzle-img {
+            background-size: cover;
+            background-position: center;
+        }
+
+        /* הצד האחורי: המכתב המרגש */
+        .back-letter {
+            transform: rotateY(180deg);
+            background: #fdfbf7;
+            background-image: repeating-linear-gradient(transparent, transparent 38px, rgba(139, 69, 19, 0.1) 39px, rgba(139, 69, 19, 0.1) 40px);
+            color: #4a2c11;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            inset: 0 0 40px rgba(139, 69, 19, 0.2);
+            cursor: pointer;
+        }
+
+        .letter-content {
+            font-family: 'Amatic SC', cursive;
+            line-height: 1.4;
+            font-weight: bold;
+        }
+
+        .click-hint {
+            position: absolute;
+            bottom: -50px;
+            width: 100%;
+            text-align: center;
+            color: gold;
+            font-family: 'Amatic SC', cursive;
+            font-size: 2rem;
+            opacity: 0;
+            transition: opacity 1s;
+            pointer-events: none;
+            animation: pulse 1.5s infinite;
+        }
+
+        .heart {
+            position: absolute;
+            top: -10vh;
+            color: #ff4444;
+            font-size: 24px;
+            animation: fall linear forwards;
+            z-index: 9999;
+            pointer-events: none;
+        }
+
+        @keyframes fall {
+            to {
+                transform: translateY(110vh) rotate(360deg);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="intro-overlay">
+        <div id="intro-text-1" class="intro-text">את זוכרת מה אנחנו עושים?</div>
+        <div id="intro-text-2" class="intro-text">פאזלים</div>
+    </div>
+
+    <button class="skip-btn" onclick="forceWin()">דילוג >> </button>
+    <h1 class="main-title">פאזלים זה החיים, ככה מה לעשות?</h1>
+
+    <div id="forPuzzle"></div>
+
+    <div id="flip-container">
+        <div class="flipper">
+            <div class="front-puzzle-img" id="solved-image"></div>
+            <div class="back-letter" id="letter-back">
+                <div class="letter-content" style="font-size: 2.2rem;">
+                    הילית,<br>
+                    את בן האדם הכי מדהים שהכרתי.<br>
+                    מרגיש לי שעבר חודש, אבל מסתבר ששנה.<br>
+                    אני פשוט כל כך נהנתי השנה, זאת הייתה שנה כל כך טובה.<br>
+                    אני מאחל שתצליחי בכל מה שתרצי, ואני יודע שאת תצליחי.<br>
+                    אני אוהב אותך כל כך, את שלי ורק שלי.<br>
+                    החיוך שלך כזה יפה, ושלא נמשיך לדבר על הגוף שלך כי לא נצא מזה...<br>
+                    את כל כך יפה, חכמה, מצחיקה ומדהימה.<br>
+                    יום הולדת 18 שמח.<br>
+                    את מדהימה.<br>
+                    מזל טוב,<br>
+                    לב 3&gt;
+                </div>
+            </div>
+        </div>
+        <div class="click-hint" id="click-hint">לחצי כדי לקרוא את המכתב</div>
+    </div>
+
+    <script>
+        "use strict";
+
+        let puzzle;
+        let playing = false;
+        let useMouse = true;
+        let lastMousePos;
+        let events = [];
+
+        // --- לוגיקת הפתיח הסינמטי וטעינת הפאזל ---
+        window.onload = () => {
+            // 1. מיד מתחילים לטעון את הפאזל מאחורי הקלעים!
+            puzzle = new Puzzle({ container: "forPuzzle" });
+            requestAnimationFrame(animate);
+
+            // 2. במקביל, מפעילים את הפתיח
+            const text1 = document.getElementById('intro-text-1');
+            const text2 = document.getElementById('intro-text-2');
+            const overlay = document.getElementById('intro-overlay');
+
+            setTimeout(() => { text1.classList.add('visible'); }, 500);
+            setTimeout(() => { text1.classList.remove('visible'); }, 3500);
+            setTimeout(() => { text2.classList.add('visible'); }, 5000);
+            setTimeout(() => { text2.classList.remove('visible'); }, 7500);
+
+            // 3. חושפים את הפאזל (שכבר מחכה מוכן מאחורה)
+            setTimeout(() => {
+                overlay.style.opacity = '0';
+            }, 8500);
+
+            setTimeout(() => { overlay.style.display = 'none'; }, 10500);
+        };
+
+        const mhypot = Math.hypot, mrandom = Math.random, mmax = Math.max, mmin = Math.min, mround = Math.round, mfloor = Math.floor, mceil = Math.ceil, msqrt = Math.sqrt, mabs = Math.abs;
+
+        function intAlea(min, max) { if (typeof max == 'undefined') { max = min; min = 0; } return mfloor(min + (max - min) * mrandom()); }
+        function arrayShuffle(array) { let k1, temp; for (let k = array.length - 1; k >= 1; --k) { k1 = intAlea(0, k + 1); temp = array[k]; array[k] = array[k1]; array[k1] = temp; } return array; }
+        function lerp(p0, p1, alpha) { return { x: p0.x * (1 - alpha) + p1.x * alpha, y: p0.y * (1 - alpha) + p1.y * alpha }; }
+
+        function mMash() {
+            let n = 0xefc8249d; let intSeed = Math.random().toString();
+            function mash(data) {
+                if (data) {
+                    data = data.toString();
+                    for (var i = 0; i < data.length; i++) {
+                        n += data.charCodeAt(i); var h = 0.02519603282416938 * n;
+                        n = h >>> 0; h -= n; h *= n; n = h >>> 0; h -= n; n += h * 0x100000000;
+                    }
+                    return (n >>> 0) * 2.3283064365386963e-10;
+                } else n = 0xefc8249d;
+            };
+            mash(intSeed);
+            let mmash = () => mash('A');
+            mmash.intAlea = function (min, max) { if (typeof max == 'undefined') { max = min; min = 0; } return mfloor(min + (max - min) * this()); }
+            mmash.alea = function (min, max) { if (typeof max == 'undefined') return min * this(); return min + (max - min) * this(); }
+            return mmash;
+        }
+
+        function getTransformMatrix(orgx, orgy, scale, rot, destx, desty) {
+            let mat = new DOMMatrix([1, 0, 0, 1, destx, desty]);
+            mat.scaleSelf(scale, scale);
+            return mat.translateSelf(-orgx, -orgy);
+        }
+
+        class Side {
+            constructor() { this.type = ""; this.points = []; }
+            reversed() { const ns = new Side(); ns.type = this.type; ns.points = this.points.slice().reverse(); return ns; }
+            drawSrcPath(path, first) {
+                if (first) path.moveTo(this.points[0].x, this.points[0].y);
+                if (this.type == "d") { path.lineTo(this.points[1].x, this.points[1].y); }
+                else { for (let k = 1; k < this.points.length - 1; k += 3) { path.bezierCurveTo(this.points[k].x, this.points[k].y, this.points[k + 1].x, this.points[k + 1].y, this.points[k + 2].x, this.points[k + 2].y); } }
+            }
+        }
+
+        function twist0(side, ca, cb) {
+            const p0 = side.points[0], p1 = side.points[1], dxh = p1.x - p0.x, dyh = p1.y - p0.y;
+            const mid0 = lerp(p0, p1, 0.5), mid1 = lerp(ca, cb, 0.5), dxv = mid1.x - mid0.x, dyv = mid1.y - mid0.y;
+            const scalex = puzzle.prng.alea(0.8, 1), scaley = puzzle.prng.alea(0.9, 1), mid = puzzle.prng.alea(0.45, 0.55);
+            const pa = pointAt(mid - 1 / 12 * scalex, 1 / 12 * scaley), pb = pointAt(mid - 2 / 12 * scalex, 3 / 12 * scaley), pc = pointAt(mid, 4 / 12 * scaley), pd = pointAt(mid + 2 / 12 * scalex, 3 / 12 * scaley), pe = pointAt(mid + 1 / 12 * scalex, 1 / 12 * scaley);
+            side.points = [p0, { x: p0.x + 5 / 12 * dxh * 0.52, y: p0.y + 5 / 12 * dyh * 0.52 }, { x: pa.x - 1 / 12 * dxv * 0.72, y: pa.y - 1 / 12 * dyv * 0.72 }, pa, { x: pa.x + 1 / 12 * dxv * 0.72, y: pa.y + 1 / 12 * dyv * 0.72 }, { x: pb.x - 1 / 12 * dxv * 0.92, y: pb.y - 1 / 12 * dyv * 0.92 }, pb, { x: pb.x + 1 / 12 * dxv * 0.52, y: pb.y + 1 / 12 * dyv * 0.52 }, { x: pc.x - 2 / 12 * dxh * 0.40, y: pc.y - 2 / 12 * dyh * 0.40 }, pc, { x: pc.x + 2 / 12 * dxh * 0.40, y: pc.y + 2 / 12 * dyh * 0.40 }, { x: pd.x + 1 / 12 * dxv * 0.52, y: pd.y + 1 / 12 * dyv * 0.52 }, pd, { x: pd.x - 1 / 12 * dxv * 0.92, y: pd.y - 1 / 12 * dyv * 0.92 }, { x: pe.x + 1 / 12 * dxv * 0.72, y: pe.y + 1 / 12 * dyv * 0.72 }, pe, { x: pe.x - 1 / 12 * dxv * 0.72, y: pe.y - 1 / 12 * dyv * 0.72 }, { x: p1.x - 5 / 12 * dxh * 0.52, y: p1.y - 5 / 12 * dyh * 0.52 }, p1];
+            side.type = "z";
+            function pointAt(coeffh, coeffv) { return { x: p0.x + coeffh * dxh + coeffv * dxv, y: p0.y + coeffh * dyh + coeffv * dyv } }
+        }
+
+        class Piece {
+            constructor(kx, ky) { this.ts = new Side(); this.rs = new Side(); this.bs = new Side(); this.ls = new Side(); this.kx = kx; this.ky = ky; }
+        }
+
+        class PolyPiece {
+            constructor(initialPiece, puz) {
+                this.pieces = [initialPiece]; this.selected = false;
+                this.minx = initialPiece.minx; this.maxx = initialPiece.maxx; this.miny = initialPiece.miny; this.maxy = initialPiece.maxy;
+                this.pCentre = { x: (this.minx + this.maxx) / 2, y: (this.miny + this.maxy) / 2 }
+                this.listLoops(); this.getSrcPath(); this.getSrcIntPath();
+                this.rot = 0;
+            }
+
+            merge(otherPoly) {
+                const kOther = puzzle.polyPieces.indexOf(otherPoly);
+                puzzle.polyPieces.splice(kOther, 1);
+                for (let k = 0; k < otherPoly.pieces.length; ++k) { otherPoly.pieces[k].poly = this; this.pieces.push(otherPoly.pieces[k]); }
+                if (otherPoly.minx < this.minx) this.minx = otherPoly.minx; if (otherPoly.maxx > this.maxx) this.maxx = otherPoly.maxx;
+                if (otherPoly.miny < this.miny) this.miny = otherPoly.miny; if (otherPoly.maxy > this.maxy) this.maxy = otherPoly.maxy;
+                this.pCentre = { x: (this.minx + this.maxx) / 2, y: (this.miny + this.maxy) / 2 }
+                this.listLoops(); this.getSrcPath(); this.getSrcIntPath();
+                puzzle.evaluateOrder();
+            }
+
+            ifNear(otherPoly) {
+                if (mhypot(this.x - otherPoly.x, this.y - otherPoly.y) >= puzzle.dConnect) return false;
+                for (let k = this.pieces.length - 1; k >= 0; --k) {
+                    let p1 = this.pieces[k];
+                    for (let ko = otherPoly.pieces.length - 1; ko >= 0; --ko) {
+                        let p2 = otherPoly.pieces[ko];
+                        if (p1.kx == p2.kx && mabs(p1.ky - p2.ky) == 1) return true;
+                        if (p1.ky == p2.ky && mabs(p1.kx - p2.kx) == 1) return true;
+                    }
+                }
+                return false;
+            }
+
+            listLoops() {
+                const that = this;
+                function edgeIsCommon(kx, ky, edge) {
+                    let k; switch (edge) { case 0: ky--; break; case 1: kx++; break; case 2: ky++; break; case 3: kx--; break; }
+                    for (k = 0; k < that.pieces.length; k++) { if (kx == that.pieces[k].kx && ky == that.pieces[k].ky) return true; }
+                    return false;
+                }
+                function edgeIsInTbEdges(kx, ky, edge) {
+                    for (let k = 0; k < tbEdges.length; k++) { if (kx == tbEdges[k].kx && ky == tbEdges[k].ky && edge == tbEdges[k].edge) return k; }
+                    return false;
+                }
+                let tbLoops = [], tbEdges = [], k, kEdge, lp, currEdge, tries, edgeNumber, potNext;
+                let tbTries = [[{ dkx: 0, dky: 0, edge: 1 }, { dkx: 1, dky: 0, edge: 0 }, { dkx: 1, dky: -1, edge: 3 }], [{ dkx: 0, dky: 0, edge: 2 }, { dkx: 0, dky: 1, edge: 1 }, { dkx: 1, dky: 1, edge: 0 }], [{ dkx: 0, dky: 0, edge: 3 }, { dkx: - 1, dky: 0, edge: 2 }, { dkx: - 1, dky: 1, edge: 1 }], [{ dkx: 0, dky: 0, edge: 0 }, { dkx: 0, dky: - 1, edge: 3 }, { dkx: - 1, dky: - 1, edge: 2 }]];
+                for (k = 0; k < this.pieces.length; k++) {
+                    for (kEdge = 0; kEdge < 4; kEdge++) { if (!edgeIsCommon(this.pieces[k].kx, this.pieces[k].ky, kEdge)) tbEdges.push({ kx: this.pieces[k].kx, ky: this.pieces[k].ky, edge: kEdge, kp: k }) }
+                }
+                while (tbEdges.length > 0) {
+                    lp = []; currEdge = tbEdges[0]; lp.push(currEdge); tbEdges.splice(0, 1);
+                    do {
+                        for (tries = 0; tries < 3; tries++) {
+                            potNext = tbTries[currEdge.edge][tries]; edgeNumber = edgeIsInTbEdges(currEdge.kx + potNext.dkx, currEdge.ky + potNext.dky, potNext.edge);
+                            if (edgeNumber === false) continue;
+                            currEdge = tbEdges[edgeNumber]; lp.push(currEdge); tbEdges.splice(edgeNumber, 1); break;
+                        }
+                        if (edgeNumber === false) break;
+                    } while (1);
+                    tbLoops.push(lp);
+                }
+                this.tbLoops = tbLoops.map(loop => loop.map(edge => { let cell = this.pieces[edge.kp]; if (edge.edge == 0) return cell.ts; if (edge.edge == 1) return cell.rs; if (edge.edge == 2) return cell.bs; return cell.ls; }));
+            }
+
+            getSrcPath() {
+                this.srcPath = new Path2D();
+                this.tbLoops.forEach(loop => { let pth = new Path2D(); loop.forEach((side, k) => { side.drawSrcPath(pth, k == 0); }); this.srcPath.addPath(pth); });
+                return this.srcPath;
+            }
+
+            getSrcIntPath() {
+                this.srcIntPath = new Path2D(); let edg = this.tbLoops.flat();
+                this.pieces.forEach((pc) => { if (!edg.includes(pc.rs)) pc.rs.drawSrcPath(this.srcIntPath, true); if (!edg.includes(pc.bs)) pc.bs.drawSrcPath(this.srcIntPath, true); });
+                return this.srcIntPath;
+            }
+
+            setTransforms() { this.fromSrcMatrix = getTransformMatrix(0, 0, puzzle.scale, this.rot, this.x, this.y); }
+
+            drawImage(special) {
+                this.setTransforms();
+                let pth = new Path2D(); pth.addPath(this.srcPath, this.fromSrcMatrix);
+                this.playPath = pth;
+
+                let ctx = puzzle.playCtx;
+                if (this.isMoving) { ctx = puzzle.moveCtx; ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height); }
+
+                ctx.fillStyle = 'none';
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
+                ctx.shadowBlur = this.selected ? 15 : 6;
+                ctx.shadowOffsetX = this.selected ? 5 : 3;
+                ctx.shadowOffsetY = this.selected ? 5 : 3;
+                ctx.fill(pth); if (this.selected) for (let k = 0; k < 3; ++k) ctx.fill(pth);
+                ctx.shadowColor = 'rgba(0, 0, 0, 0)';
+
+                ctx.save(); ctx.clip(pth);
+                ctx.setTransform(this.fromSrcMatrix); ctx.drawImage(puzzle.srcImage, 0, 0); ctx.resetTransform();
+
+                const dxemboss = puzzle.embossThickness / 2, dyemboss = -puzzle.embossThickness / 2;
+                ctx.lineWidth = puzzle.embossThickness * 1.5; ctx.translate(dxemboss, dyemboss);
+                ctx.strokeStyle = "rgba(0, 0, 0, 0.4)"; ctx.stroke(pth);
+                ctx.translate(-2 * dxemboss, -2 * dyemboss); ctx.strokeStyle = "rgba(255, 255, 255, 0.4)"; ctx.stroke(pth);
+
+                let pthi = new Path2D(); pthi.addPath(this.srcIntPath, this.fromSrcMatrix);
+                ctx.lineWidth = 1; ctx.strokeStyle = "rgba(0,0,0,0.5)";
+                ctx.stroke(pthi);
+                ctx.restore();
+            }
+
+            moveTo(x, y) { this.x = x; this.y = y; this.setTransforms(); }
+            isPointInPath(p) { return (puzzle.playCtx.isPointInPath(this.playPath, p.x, p.y)) }
+        }
+
+        class Puzzle {
+            constructor(params) {
+                this.container = document.getElementById(params.container);
+
+                this.container.addEventListener("mousedown", event => {
+                    useMouse = true; event.preventDefault(); if (event.button != 0) return;
+                    events.push({ event: 'touch', position: this.relativeMouseCoordinates(event) });
+                });
+                this.container.addEventListener("touchstart", event => {
+                    useMouse = false; event.preventDefault();
+                    if (event.touches.length == 0) return;
+                    events.push({ event: 'touch', position: this.relativeMouseCoordinates(event.touches.item(0)) });
+                }, { passive: false });
+
+                const handleLeave = () => { events.push({ event: 'leave' }); };
+                this.container.addEventListener("mouseup", event => { useMouse = true; event.preventDefault(); if (event.button != 0) return; handleLeave(); });
+                this.container.addEventListener("touchend", handleLeave); this.container.addEventListener("touchleave", handleLeave); this.container.addEventListener("touchcancel", handleLeave);
+
+                this.container.addEventListener("mousemove", event => {
+                    useMouse = true; event.preventDefault();
+                    if (events.length && events[events.length - 1].event == "move") events.pop();
+                    events.push({ event: 'move', position: this.relativeMouseCoordinates(event), ev: event })
+                });
+                this.container.addEventListener("touchmove", event => {
+                    useMouse = false; event.preventDefault();
+                    if (event.touches.length == 1) { if (events.length && events[events.length - 1].event == "move") events.pop(); events.push({ event: 'move', position: this.relativeMouseCoordinates(event.touches.item(0)) }); }
+                }, { passive: false });
+
+                this.srcImage = new Image();
+                this.imageLoaded = false;
+            }
+
+            getContainerSize() {
+                let styl = window.getComputedStyle(this.container);
+                this.contWidth = parseFloat(styl.width); this.contHeight = parseFloat(styl.height);
+            }
+
+            create() {
+                this.prng = mMash();
+                this.container.innerHTML = "";
+                this.playCanvas = document.createElement("canvas"); this.container.append(this.playCanvas); this.playCtx = this.playCanvas.getContext("2d"); this.playCanvas.style.position = "absolute";
+                this.moveCanvas = document.createElement("canvas"); this.container.append(this.moveCanvas); this.moveCtx = this.moveCanvas.getContext("2d"); this.moveCanvas.style.position = "absolute";
+
+                this.getContainerSize();
+                this.moveCanvas.width = this.playCanvas.width = this.contWidth;
+                this.moveCanvas.height = this.playCanvas.height = this.contHeight;
+
+                this.nx = 6; this.ny = 4; // 6x4
+                this.srcWidth = this.srcImage.naturalWidth; this.srcHeight = this.srcImage.naturalHeight;
+
+                this.scale = mmin((this.contWidth * 0.8) / this.srcWidth, (this.contHeight * 0.6) / this.srcHeight);
+                this.defineShapes({ coeffDecentr: 0.12, twistf: twist0 });
+
+                this.polyPieces = [];
+                this.pieces.forEach(row => row.forEach(piece => { this.polyPieces.push(new PolyPiece(piece, this)); }));
+                arrayShuffle(this.polyPieces);
+                this.evaluateOrder();
+            }
+
+            drawPolyPieces() {
+                this.playCtx.clearRect(0, 0, this.playCanvas.width, this.playCanvas.height);
+                for (let k = 0; k < this.polyPieces.length; ++k) this.polyPieces[k].drawImage();
+            }
+
+            defineShapes(shapeDesc) {
+                let { coeffDecentr, twistf } = shapeDesc;
+                const corners = [], nx = this.nx, ny = this.ny, dx = this.srcWidth / this.nx, dy = this.srcHeight / this.ny;
+
+                for (let ky = 0; ky <= ny; ++ky) {
+                    corners[ky] = [];
+                    for (let kx = 0; kx <= nx; ++kx) {
+                        corners[ky][kx] = { x: (kx + this.prng.alea(-coeffDecentr, coeffDecentr)) * dx, y: (ky + this.prng.alea(-coeffDecentr, coeffDecentr)) * dy };
+                        if (kx == 0) corners[ky][kx].x = 0; if (kx == nx) corners[ky][kx].x = this.srcWidth;
+                        if (ky == 0) corners[ky][kx].y = 0; if (ky == ny) corners[ky][kx].y = this.srcHeight;
+                    }
+                }
+
+                this.pieces = [];
+                for (let ky = 0; ky < ny; ++ky) {
+                    this.pieces[ky] = [];
+                    for (let kx = 0; kx < nx; ++kx) {
+                        let np = new Piece(kx, ky); this.pieces[ky][kx] = np;
+                        if (ky == 0) { np.ts.points = [corners[ky][kx], corners[ky][kx + 1]]; np.ts.type = "d"; } else { np.ts = this.pieces[ky - 1][kx].bs.reversed(); }
+                        np.rs.points = [corners[ky][kx + 1], corners[ky + 1][kx + 1]]; np.rs.type = "d";
+                        if (kx < nx - 1) { if (this.prng.intAlea(2)) twistf(np.rs, corners[ky][kx], corners[ky + 1][kx]); else twistf(np.rs, corners[ky][kx + 2], corners[ky + 1][kx + 2]); }
+                        if (kx == 0) { np.ls.points = [corners[ky + 1][kx], corners[ky][kx]]; np.ls.type = "d"; } else { np.ls = this.pieces[ky][kx - 1].rs.reversed() }
+                        np.bs.points = [corners[ky + 1][kx + 1], corners[ky + 1][kx]]; np.bs.type = "d";
+                        if (ky < ny - 1) { if (this.prng.intAlea(2)) twistf(np.bs, corners[ky][kx + 1], corners[ky][kx]); else twistf(np.bs, corners[ky + 2][kx + 1], corners[ky + 2][kx]); }
+
+                        np.srcPath = new Path2D(); np.ts.drawSrcPath(np.srcPath, true); np.rs.drawSrcPath(np.srcPath, false); np.bs.drawSrcPath(np.srcPath, false); np.ls.drawSrcPath(np.srcPath, false);
+                        np.minx = (kx - 0.5) * dx; np.maxx = (kx + 1.5) * dx; np.miny = (ky - 0.5) * dy; np.maxy = (ky + 1.5) * dy;
+                    }
+                }
+            }
+
+            doScale() {
+                let dRef = this.srcWidth / this.nx;
+                this.dConnect = mmax(15, this.scale * dRef / 4);
+                this.embossThickness = mmin(2 + this.scale * dRef / 200 * 2, 4);
+                this.polyPieces.forEach(pp => pp.setTransforms());
+            }
+
+            sweepBy(dx, dy) {
+                this.polyPieces.forEach(pp => { pp.moveTo(pp.x + dx, pp.y + dy); })
+                this.drawPolyPieces();
+            }
+
+            relativeMouseCoordinates(event) {
+                const br = this.container.getBoundingClientRect();
+                lastMousePos = { x: event.clientX - br.x, y: event.clientY - br.y };
+                return lastMousePos;
+            }
+
+            spread() {
+                const marginX = 150;
+                const marginY = 150;
+
+                this.polyPieces.forEach(pp => {
+                    const pieceOriginalCenterX = (pp.minx + (pp.maxx - pp.minx) / 2) * this.scale;
+                    const pieceOriginalCenterY = (pp.miny + (pp.maxy - pp.miny) / 2) * this.scale;
+
+                    let randomX = marginX + Math.random() * (this.contWidth - marginX * 2);
+                    let randomY = marginY + Math.random() * (this.contHeight - marginY * 2);
+
+                    pp.moveTo(randomX - pieceOriginalCenterX, randomY - pieceOriginalCenterY);
+                });
+            }
+
+            evaluateOrder() {
+                for (let k = this.polyPieces.length - 1; k > 0; --k) {
+                    if (this.polyPieces[k].pieces.length > this.polyPieces[k - 1].pieces.length) {
+                        [this.polyPieces[k], this.polyPieces[k - 1]] = [this.polyPieces[k - 1], this.polyPieces[k]];
+                    }
+                }
+            }
+        }
+
+        // ================= לולאת המשחק המרכזית =================
+        let animate;
+        {
+            let state = 0;
+            let moving = {};
+            let tInit;
+
+            animate = function (tStamp) {
+                requestAnimationFrame(animate);
+
+                let event;
+                if (events.length) event = events.shift();
+
+                if (event?.event == "resize" && state >= 20) {
+                    puzzle.getContainerSize();
+                    puzzle.moveCanvas.width = puzzle.playCanvas.width = puzzle.contWidth;
+                    puzzle.moveCanvas.height = puzzle.playCanvas.height = puzzle.contHeight;
+                    puzzle.drawPolyPieces();
+                }
+
+                switch (state) {
+                    case 0:
+                        puzzle.srcImage.src = "puzzle_image.jpg";
+                        puzzle.srcImage.addEventListener("load", () => { puzzle.imageLoaded = true; events.push({ event: "srcImageLoaded" }); });
+                        puzzle.srcImage.addEventListener("error", () => {
+                            const c = document.createElement("canvas"); c.width = 800; c.height = 600; const ctx = c.getContext("2d");
+                            const grad = ctx.createLinearGradient(0, 0, 800, 600); grad.addColorStop(0, '#ff4b2b'); grad.addColorStop(1, '#ff416c');
+                            ctx.fillStyle = grad; ctx.fillRect(0, 0, 800, 600); ctx.fillStyle = "white"; ctx.font = "bold 40px Tahoma"; ctx.textAlign = "center";
+                            ctx.fillText("שמרי תמונה בשם puzzle_image.jpg בתיקייה!", 400, 300);
+                            puzzle.srcImage.src = c.toDataURL();
+                        });
+                        state = 10;
+                        break;
+
+                    case 10:
+                        if (!puzzle.imageLoaded) return;
+                        state = 20;
+                        break;
+
+                    case 20:
+                        playing = true;
+                        puzzle.create();
+                        puzzle.doScale();
+                        puzzle.spread();
+                        puzzle.drawPolyPieces();
+                        state = 50;
+                        break;
+
+                    case 50:
+                        if (!event) return;
+                        if (event.event == "touch") {
+                            moving = { xMouseInit: event.position.x, yMouseInit: event.position.y, tInit: tStamp }
+                            for (let k = puzzle.polyPieces.length - 1; k >= 0; --k) {
+                                let pp = puzzle.polyPieces[k];
+                                if (pp.isPointInPath(event.position)) {
+                                    pp.selected = true; moving.pp = pp; moving.ppXInit = pp.x; moving.ppYInit = pp.y;
+                                    puzzle.polyPieces.splice(k, 1); puzzle.polyPieces.push(pp);
+                                    pp.isMoving = true; puzzle.drawPolyPieces();
+                                    state = 55; return;
+                                }
+                            }
+                            state = 100;
+                        }
+                        break;
+
+                    case 55:
+                        if (!event) return;
+                        switch (event.event) {
+                            case "move":
+                                moving.pp.moveTo(event.position.x - moving.xMouseInit + moving.ppXInit, event.position.y - moving.yMouseInit + moving.ppYInit);
+                                moving.pp.drawImage(); break;
+                            case "leave":
+                                let doneSomething; moving.pp.selected = false; moving.pp.isMoving = false;
+                                puzzle.moveCtx.clearRect(0, 0, puzzle.moveCanvas.width, puzzle.moveCanvas.height);
+                                let merged = false;
+                                do {
+                                    doneSomething = false;
+                                    for (let k = puzzle.polyPieces.length - 1; k >= 0; --k) {
+                                        let pp = puzzle.polyPieces[k];
+                                        if (pp == moving.pp) continue;
+                                        if (moving.pp.ifNear(pp)) {
+                                            merged = true;
+                                            if (pp.pieces.length > moving.pp.pieces.length) { pp.merge(moving.pp); moving.pp = pp; }
+                                            else { moving.pp.merge(pp); }
+                                            doneSomething = true; break;
+                                        }
+                                    }
+                                } while (doneSomething);
+                                puzzle.evaluateOrder();
+                                if (merged) {
+                                    moving.pp.isMoving = true; moving.pp.selected = true; moving.pp.drawImage(true);
+                                    moving.tInit = tStamp + 200; state = 56; break;
+                                }
+                                puzzle.drawPolyPieces();
+
+                                if (puzzle.polyPieces.length == 1) { forceWin(); state = 9999; } else { state = 50; }
+                                break;
+                        }
+                        break;
+
+                    case 56:
+                        if (tStamp < moving.tInit) return;
+                        moving.pp.isMoving = false; moving.pp.selected = false;
+                        puzzle.moveCtx.clearRect(0, 0, puzzle.moveCanvas.width, puzzle.moveCanvas.height);
+                        puzzle.drawPolyPieces();
+                        if (puzzle.polyPieces.length == 1) { forceWin(); state = 9999; } else { state = 50; }
+                        break;
+
+                    case 100:
+                        if (!event) return;
+                        if (event.event == "move") {
+                            puzzle.sweepBy(event.position.x - moving.xMouseInit, event.position.y - moving.yMouseInit);
+                            moving.xMouseInit = event.position.x; moving.yMouseInit = event.position.y;
+                        } else if (event.event == "leave") { state = 50; }
+                        break;
+
+                    case 9999: break;
+                }
+            }
+        }
+
+        // ================= סצנת הניצחון (המכתב החלק) =================
+        function forceWin() {
+            // הוספנו תמיכה גם בלחיצה על "דילוג" אם הפאזל לא הושלם
+            if (puzzle && puzzle.polyPieces && puzzle.polyPieces.length > 1) {
+                // מרכיב את הפאזל מיידית מאחורי הקלעים
+                puzzle.polyPieces[0].pieces = puzzle.pieces.flat();
+                puzzle.polyPieces = [puzzle.polyPieces[0]];
+            }
+
+            playing = false;
+
+            const canvasDiv = document.getElementById('forPuzzle');
+            canvasDiv.style.opacity = '0'; // מעלים את הפאזל שזז
+
+            const flipContainer = document.getElementById('flip-container');
+            const solvedImg = document.getElementById('solved-image');
+
+            // במקרה והמשתמש לחץ על 'דילוג' לפני שהפאזל נטען, ניקח מידות מינימליות דיפולטיביות כדי לא לקרוס
+            const targetW = (puzzle && puzzle.srcWidth) ? puzzle.srcWidth * puzzle.scale : 800;
+            const targetH = (puzzle && puzzle.srcHeight) ? puzzle.srcHeight * puzzle.scale : 530;
+            flipContainer.style.width = targetW + 'px';
+            flipContainer.style.height = targetH + 'px';
+
+            solvedImg.style.backgroundImage = `url(${(puzzle && puzzle.srcImage) ? puzzle.srcImage.src : 'puzzle_image.jpg'})`;
+            flipContainer.style.display = 'block';
+
+            createHearts();
+
+            // היפוך סינמטי מטורף במרכז המסך למכתב המרגש
+            setTimeout(() => {
+                flipContainer.classList.add('flipped');
+                const clickHint = document.getElementById('click-hint');
+                clickHint.style.opacity = '1';
+
+                flipContainer.style.cursor = 'pointer';
+                flipContainer.addEventListener('click', function () {
+                    this.classList.toggle('flipped');
+                    clickHint.innerText = this.classList.contains('flipped') ? 'לחצי על המכתב כדי לראות את התמונה' : 'לחצי על התמונה כדי לקרוא את המכתב';
+                });
+
+                setTimeout(() => canvasDiv.style.display = 'none', 1000);
+            }, 1000);
+        }
+
+        function createHearts() {
+            setInterval(() => {
+                const heart = document.createElement('div');
+                heart.classList.add('heart');
+                heart.innerHTML = '❤️';
+                heart.style.left = Math.random() * 100 + 'vw';
+                heart.style.animationDuration = Math.random() * 2 + 3 + 's';
+                heart.style.fontSize = Math.random() * 20 + 15 + 'px';
+                document.body.appendChild(heart);
+
+                setTimeout(() => { heart.remove(); }, 5000);
+            }, 150);
+        }
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,523 @@
+﻿<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <title>הגלריה הווירטואלית</title>
+    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+    <link rel="icon" type="image/x-icon" href="heart_logo.png">
+
+    <script>
+        const originalMouseMove = AFRAME.components['look-controls'].Component.prototype.onMouseMove;
+        AFRAME.components['look-controls'].Component.prototype.onMouseMove = function (event) {
+            if (!event) return;
+            const sensitivity = 0.3; // 30% מהמהירות המקורית לתנועה חלקה יותר
+            const fakeEvent = {
+                movementX: (event.movementX || 0) * sensitivity,
+                movementY: (event.movementY || 0) * sensitivity,
+                screenX: event.screenX,
+                screenY: event.screenY,
+                clientX: event.clientX,
+                clientY: event.clientY,
+                button: event.button,
+                type: event.type,
+                preventDefault: function () { if (event.preventDefault) event.preventDefault(); },
+                stopPropagation: function () { if (event.stopPropagation) event.stopPropagation(); }
+            };
+            originalMouseMove.call(this, fakeEvent);
+        };
+    </script>
+
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Tahoma', sans-serif;
+        }
+
+        /* --- מסך הדרכה עליון שייעלם --- */
+        #crosshair-hint {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255,255,255,0.7);
+            font-size: 16px;
+            pointer-events: none;
+            z-index: 100;
+            text-align: center;
+            background: rgba(0,0,0,0.8);
+            padding: 10px 25px;
+            border-radius: 30px;
+            border: 1px solid #444;
+            direction: rtl;
+        }
+
+        /* --- ממשק קריאת הלוחיות --- */
+        #reading-ui {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: radial-gradient(circle, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.9) 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s;
+            z-index: 1000;
+        }
+
+        .reading-content {
+            text-align: center;
+            color: white;
+            max-width: 600px;
+            background: rgba(10, 10, 10, 0.85);
+            padding: 40px 60px;
+            border-radius: 10px;
+            border: 1px solid rgba(212, 175, 55, 0.5);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+            transform: translateY(20px);
+            transition: transform 0.5s;
+        }
+
+        #reading-ui.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+            #reading-ui.active .reading-content {
+                transform: translateY(0);
+            }
+
+        .reading-title {
+            color: #d4af37;
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: bold;
+        }
+
+        .reading-desc {
+            font-size: 1.4rem;
+            line-height: 1.8;
+            margin-bottom: 30px;
+            color: #eee;
+            direction: rtl;
+        }
+
+        .back-btn {
+            background: transparent;
+            color: #d4af37;
+            border: 1px solid #d4af37;
+            padding: 10px 40px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: 0.3s;
+            border-radius: 3px;
+            outline: none;
+        }
+
+            .back-btn:hover {
+                background: #d4af37;
+                color: black;
+                box-shadow: 0 0 15px rgba(212,175,55,0.5);
+            }
+
+        /* --- ממשק הקודן --- */
+        #numpad-ui {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #111;
+            border: 2px solid #333;
+            border-top: 3px solid red;
+            border-radius: 5px;
+            padding: 30px;
+            width: 320px;
+            display: none;
+            pointer-events: auto;
+            text-align: center;
+            box-shadow: 0 20px 50px rgba(255,0,0,0.2);
+            z-index: 1001;
+        }
+
+        .close-numpad-btn {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: transparent;
+            color: #888;
+            border: 1px solid #444;
+            font-size: 1.2rem;
+            cursor: pointer;
+            border-radius: 3px;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: 0.2s;
+            outline: none;
+        }
+
+            .close-numpad-btn:hover {
+                background: #ff4444;
+                color: white;
+                border-color: #ff4444;
+            }
+
+        #numpad-display {
+            background: #000;
+            color: #0f0;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 2.5rem;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 2px inset #222;
+            letter-spacing: 15px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 10px;
+        }
+
+        .keys {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        .key {
+            background: #222;
+            color: white;
+            border: 1px solid #444;
+            padding: 15px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            border-radius: 3px;
+            transition: background 0.1s;
+            outline: none;
+        }
+
+            .key:hover {
+                background: #444;
+            }
+
+            .key:active {
+                background: #000;
+            }
+
+            .key.red {
+                background: #500;
+                color: #ffaaaa;
+                border-color: #800;
+            }
+
+                .key.red:hover {
+                    background: #800;
+                }
+
+            .key.green {
+                background: #050;
+                color: #aaffaa;
+                border-color: #080;
+            }
+
+                .key.green:hover {
+                    background: #080;
+                }
+    </style>
+</head>
+<body>
+
+
+    <div id="reading-ui">
+        <div class="reading-content">
+            <div class="reading-title" id="read-title">כותרת</div>
+            <div class="reading-desc" id="read-desc">תיאור התמונה והרמז הנסתר יופיעו כאן</div>
+            <button class="back-btn" onclick="stepBack()">חזרה לסיור</button>
+        </div>
+    </div>
+
+    <div id="numpad-ui">
+        <button class="close-numpad-btn" onclick="closeNumpad()">X</button>
+        <h2 style="color:red; margin-top:0; font-family: Arial;">SECURE EXIT</h2>
+        <div id="numpad-display"></div>
+        <div class="keys">
+            <button class="key" onclick="pressKey('1')">1</button>
+            <button class="key" onclick="pressKey('2')">2</button>
+            <button class="key" onclick="pressKey('3')">3</button>
+            <button class="key" onclick="pressKey('4')">4</button>
+            <button class="key" onclick="pressKey('5')">5</button>
+            <button class="key" onclick="pressKey('6')">6</button>
+            <button class="key" onclick="pressKey('7')">7</button>
+            <button class="key" onclick="pressKey('8')">8</button>
+            <button class="key" onclick="pressKey('9')">9</button>
+            <button class="key red" onclick="clearCode()">C</button>
+            <button class="key" onclick="pressKey('0')">0</button>
+            <button class="key green" onclick="checkCode()">E</button>
+        </div>
+    </div>
+
+    <a-scene renderer="antialias: false;" background="color: #000" fog="type: linear; color: #050505; near: 2; far: 25">
+
+        <a-assets>
+            <img id="img1" src="img1.jpg">
+            <img id="img2" src="img2.jpg">
+            <img id="img3" src="img3.jpg">
+            <img id="img4" src="img4.jpg">
+            <img id="img5" src="img5.jpg">
+            <img id="img6" src="img6.jpg">
+        </a-assets>
+
+        <a-entity id="camera-rig" position="0 1.6 0">
+            <a-camera id="player-camera" fov="80" look-controls="pointerLockEnabled: true" wasd-controls="acceleration: 15">
+                <a-cursor color="gold" scale="0.6 0.6 0.6" raycaster="objects: .clickable; interval: 100;"></a-cursor>
+            </a-camera>
+        </a-entity>
+
+        <a-light type="ambient" color="#444"></a-light>
+        <a-light type="directional" color="#fff" intensity="0.5" position="-1 2 1"></a-light>
+
+        <a-plane position="0 0 -20" rotation="-90 0 0" width="12" height="45" color="#0a0a0a"></a-plane>
+        <a-plane position="0 6 -20" rotation="90 0 0" width="12" height="45" color="#050505"></a-plane>
+        <a-plane position="0 5.95 -20" rotation="90 0 0" width="1" height="40" material="shader: flat; color: #fff; opacity: 0.5"></a-plane>
+
+        <a-plane position="-6 3 -20" rotation="0 90 0" width="45" height="6" color="#1a1a1a"></a-plane>
+        <a-plane position="6 3 -20" rotation="0 -90 0" width="45" height="6" color="#1a1a1a"></a-plane>
+        <a-plane position="0 3 1" rotation="0 180 0" width="12" height="6" color="#111"></a-plane>
+        <a-plane position="0 3 -42" rotation="0 0 0" width="12" height="6" color="#111"></a-plane>
+
+        <a-box position="-5.9 0.2 -20" width="0.2" height="0.4" depth="45" color="#000"></a-box>
+        <a-box position="5.9 0.2 -20" width="0.2" height="0.4" depth="45" color="#000"></a-box>
+
+        <a-entity position="0 0 -10">
+            <a-box position="0 0.5 0" width="2" height="0.1" depth="0.8" color="#222"></a-box>
+            <a-box position="-0.8 0.25 0" width="0.1" height="0.5" depth="0.6" color="#111"></a-box>
+            <a-box position="0.8 0.25 0" width="0.1" height="0.5" depth="0.6" color="#111"></a-box>
+        </a-entity>
+        <a-entity position="0 0 -22">
+            <a-box position="0 0.5 0" width="2" height="0.1" depth="0.8" color="#222"></a-box>
+            <a-box position="-0.8 0.25 0" width="0.1" height="0.5" depth="0.6" color="#111"></a-box>
+            <a-box position="0.8 0.25 0" width="0.1" height="0.5" depth="0.6" color="#111"></a-box>
+        </a-entity>
+
+        <a-entity position="-5.8 2.5 -10" rotation="0 90 0">
+            <a-box width="3.4" height="2.4" depth="0.1" color="#0a0a0a" position="0 0 0"></a-box>
+            <a-plane width="3.2" height="2.2" color="#ececec" position="0 0 0.06"></a-plane>
+            <a-image src="#img1" width="2.8" height="1.8" position="0 0 0.08" material="shader: flat"></a-image>
+
+            <a-box class="clickable gold-plate" width="1" height="0.6" depth="0.05" color="#d4af37" position="-2.6 0 0.05"
+                   data-title="פארק הירקון" data-desc="וואו איזו חוויה. נסענו ביחד בפארק הירקון על האופניים. וואלה זה היה אחד הרגעים.">
+                <a-plane width="0.9" height="0.5" color="#111" position="0 0 0.026"></a-plane>
+                <a-text value="READ NOTE" color="#d4af37" position="0 0 0.03" align="center" width="2.8" font="monoid"></a-text>
+            </a-box>
+        </a-entity>
+
+        <a-entity position="5.8 2.5 -10" rotation="0 -90 0">
+            <a-box width="3.4" height="2.4" depth="0.1" color="#0a0a0a" position="0 0 0"></a-box>
+            <a-plane width="3.2" height="2.2" color="#ececec" position="0 0 0.06"></a-plane>
+            <a-image src="#img2" width="2.8" height="1.8" position="0 0 0.08" material="shader: flat"></a-image>
+
+            <a-box class="clickable gold-plate" width="1" height="0.6" depth="0.05" color="#d4af37" position="-2.6 0 0.05"
+                   data-title="צומת" data-desc="גם באמצע צומת בדרך לפארק הירקון עדיין אנחנו מחייכים חחחח, אני כל כך אוהב אותך. זה היה אנחנו, 4 גלגלים והשמש חחח.">
+                <a-plane width="0.9" height="0.5" color="#111" position="0 0 0.026"></a-plane>
+                <a-text value="READ NOTE" color="#d4af37" position="0 0 0.03" align="center" width="2.8" font="monoid"></a-text>
+            </a-box>
+        </a-entity>
+
+        <a-entity position="-5.8 2.5 -22" rotation="0 90 0">
+            <a-box width="3.4" height="2.4" depth="0.1" color="#0a0a0a" position="0 0 0"></a-box>
+            <a-plane width="3.2" height="2.2" color="#ececec" position="0 0 0.06"></a-plane>
+            <a-image src="#img3" width="2.8" height="1.8" position="0 0 0.08" material="shader: flat"></a-image>
+
+            <a-box class="clickable gold-plate" width="1" height="0.6" depth="0.05" color="#d4af37" position="-2.6 0 0.05"
+                   data-title="בבארבי" data-desc="אחת ההופעות הראשונות שלו, את האמת שאנחנו די מכורים. באמת אני כל כך אוהב את המקום הזה, וזה רק בזכותך.">
+                <a-plane width="0.9" height="0.5" color="#111" position="0 0 0.026"></a-plane>
+                <a-text value="READ NOTE" color="#d4af37" position="0 0 0.03" align="center" width="2.8" font="monoid"></a-text>
+            </a-box>
+        </a-entity>
+
+        <a-entity position="5.8 2.5 -22" rotation="0 -90 0">
+            <a-box width="3.4" height="2.4" depth="0.1" color="#0a0a0a" position="0 0 0"></a-box>
+            <a-plane width="3.2" height="2.2" color="#ececec" position="0 0 0.06"></a-plane>
+            <a-image src="#img4" width="2.8" height="1.8" position="0 0 0.08" material="shader: flat"></a-image>
+
+            <a-box class="clickable gold-plate" width="1" height="0.6" depth="0.05" color="#d4af37" position="-2.6 0 0.05"
+                   data-title="בפולין" data-desc="בשישי בפולין לקראת הקידוש. אני מבטיח לך שנטוס עוד!">
+                <a-plane width="0.9" height="0.5" color="#111" position="0 0 0.026"></a-plane>
+                <a-text value="READ NOTE" color="#d4af37" position="0 0 0.03" align="center" width="2.8" font="monoid"></a-text>
+            </a-box>
+        </a-entity>
+
+        <a-entity position="-5.8 2.5 -34" rotation="0 90 0">
+            <a-box width="3.4" height="2.4" depth="0.1" color="#0a0a0a" position="0 0 0"></a-box>
+            <a-plane width="3.2" height="2.2" color="#ececec" position="0 0 0.06"></a-plane>
+            <a-image src="#img5" width="2.8" height="1.8" position="0 0 0.08" material="shader: flat"></a-image>
+
+            <a-box class="clickable gold-plate" width="1" height="0.6" depth="0.05" color="#d4af37" position="-2.6 0 0.05"
+                   data-title="כליקפה" data-desc="בין הדייטים האהובים עליי שלנו. זה היה כל כך כיף, עיצבנו שתי קערות מטריפות!">
+                <a-plane width="0.9" height="0.5" color="#111" position="0 0 0.026"></a-plane>
+                <a-text value="READ NOTE" color="#d4af37" position="0 0 0.03" align="center" width="2.8" font="monoid"></a-text>
+            </a-box>
+        </a-entity>
+
+        <a-entity position="5.8 2.5 -34" rotation="0 -90 0">
+            <a-box width="3.4" height="2.4" depth="0.1" color="#0a0a0a" position="0 0 0"></a-box>
+            <a-plane width="3.2" height="2.2" color="#ececec" position="0 0 0.06"></a-plane>
+            <a-image src="#img6" width="2.8" height="1.8" position="0 0 0.08" material="shader: flat"></a-image>
+
+            <a-box class="clickable gold-plate" width="1" height="0.6" depth="0.05" color="#d4af37" position="-2.6 0 0.05"
+                   data-title="הים" data-desc="כל פעם שאנחנו בים אני נהנה, גם אם אנחנו הולכים חמישה קילומטרים. אני כל כך אוהב אותך!">
+                <a-plane width="0.9" height="0.5" color="#111" position="0 0 0.026"></a-plane>
+                <a-text value="READ NOTE" color="#d4af37" position="0 0 0.03" align="center" width="2.8" font="monoid"></a-text>
+            </a-box>
+        </a-entity>
+
+        <a-box position="0 3 -41.9" width="4" height="6" depth="0.2" color="#111"></a-box>
+        <a-text value="EXIT" color="#555" position="-0.7 4.5 -41.7" scale="3 3 3" font="monoid" material="shader: flat"></a-text>
+
+        <a-entity position="0 0 -39">
+            <a-cylinder position="0 0.6 0" radius="0.3" height="1.2" color="#222"></a-cylinder>
+            <a-plane id="numpad-trigger" class="clickable" position="0 1.25 0.1" rotation="-30 0 0" width="0.8" height="0.6" color="#1a1a1a">
+                <a-text value="ENTER CODE" color="gold" position="-0.32 0.2 0.02" scale="0.5 0.5 0.5"></a-text>
+                <a-circle radius="0.1" color="#ff4444" position="0 -0.05 0.02" material="shader: flat"></a-circle>
+            </a-plane>
+        </a-entity>
+
+    </a-scene>
+
+    <script>
+        // מעלים את ההנחיה של ה-crosshair אחרי כמה שניות
+        setTimeout(() => {
+            const hint = document.getElementById('crosshair-hint');
+            if (hint) hint.style.opacity = '0';
+        }, 8000);
+
+        // --- לוגיקה חסינת תקלות להחזרת פוקוס ו-WASD ---
+        function restoreFocus() {
+            const canvas = document.querySelector('canvas');
+            if (canvas) {
+                if (document.activeElement) document.activeElement.blur(); // מונע נעילת פוקוס על כפתורי ה-HTML
+                canvas.focus();
+                canvas.requestPointerLock();
+            }
+        }
+
+        // טעינה ופוקוס בלחיצה על המסך (כדי להתחיל את המשחק)
+        document.body.addEventListener('click', function () {
+            if (document.getElementById('reading-ui').classList.contains('active') || document.getElementById('numpad-ui').style.display === 'block') {
+                return; // לא נועל אם פופ-אפ כבר פתוח
+            }
+            restoreFocus();
+        });
+
+        // --- פופ-אפים של התמונות וזום ---
+        const readingUI = document.getElementById('reading-ui');
+        const readTitle = document.getElementById('read-title');
+        const readDesc = document.getElementById('read-desc');
+        const cam = document.getElementById('player-camera');
+
+        document.querySelectorAll('.gold-plate').forEach(plate => {
+            plate.addEventListener('click', function (e) {
+                e.stopPropagation(); // קריטי: מונע נעילה כפולה של העכבר
+                document.exitPointerLock();
+
+                // עוצר את ההליכה לחלוטין כדי למנוע תקלות
+                cam.setAttribute('look-controls', 'enabled', false);
+                cam.setAttribute('wasd-controls', 'enabled', false);
+
+                // מעדכן את הטקסט בפופ-אפ (בלי קופסת ה-DIGIT)
+                readTitle.innerText = this.getAttribute('data-title');
+                readDesc.innerHTML = this.getAttribute('data-desc');
+
+                // מבצע זום פנימה דרך FOV
+                cam.setAttribute('animation__zoom', 'property: fov; from: 80; to: 35; dur: 500; easing: easeOutQuad');
+
+                setTimeout(() => {
+                    readingUI.classList.add('active');
+                }, 200);
+            });
+        });
+
+        function stepBack() {
+            readingUI.classList.remove('active');
+
+            // זום אאוט
+            cam.setAttribute('animation__zoom', 'property: fov; to: 80; dur: 500; easing: easeInOutQuad');
+
+            // מחזיר את היכולת ללכת ולראות
+            cam.setAttribute('look-controls', 'enabled', true);
+            cam.setAttribute('wasd-controls', 'enabled', true);
+
+            // מחזיר את הפוקוס למשחק באותו הרגע (חובה כדי שה-WASD ימשיך לעבוד)
+            restoreFocus();
+        }
+
+        // --- לוגיקה של הקודן ---
+        const numpadTrigger = document.getElementById('numpad-trigger');
+        const numpadUI = document.getElementById('numpad-ui');
+        const numpadDisplay = document.getElementById('numpad-display');
+        let currentCode = "";
+
+        // כאן מוגדרת הסיסמה: 141625
+        const CORRECT_CODE = "141625";
+
+        numpadTrigger.addEventListener('click', function (e) {
+            e.stopPropagation();
+            document.exitPointerLock();
+            cam.setAttribute('look-controls', 'enabled', false);
+            cam.setAttribute('wasd-controls', 'enabled', false);
+            numpadUI.style.display = 'block';
+        });
+
+        function closeNumpad() {
+            numpadUI.style.display = 'none';
+            cam.setAttribute('look-controls', 'enabled', true);
+            cam.setAttribute('wasd-controls', 'enabled', true);
+            restoreFocus();
+        }
+
+        function pressKey(num) {
+            if (currentCode.length < 6) {
+                currentCode += num;
+                updateDisplay();
+            }
+        }
+
+        function clearCode() {
+            currentCode = "";
+            updateDisplay();
+            numpadDisplay.style.color = "#0f0";
+        }
+
+        function updateDisplay() {
+            numpadDisplay.innerText = currentCode.padEnd(6, '_');
+        }
+
+        updateDisplay();
+
+        function checkCode() {
+            if (currentCode === CORRECT_CODE) {
+                numpadDisplay.innerText = "ACCESS";
+                numpadDisplay.style.color = "gold";
+
+                setTimeout(() => {
+                    window.location.href = "final_stage.html"; // המעבר לשלב הבא!
+                }, 1500);
+
+            } else {
+                numpadDisplay.innerText = "DENIED";
+                numpadDisplay.style.color = "red";
+                setTimeout(clearCode, 1000);
+            }
+        }
+    </script>
+</body>
+</html>

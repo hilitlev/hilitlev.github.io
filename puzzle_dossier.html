@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>פתרת את החידה! יום הולדת שמח!</title>
+    <link rel="icon" type="image/x-icon" href="h.png">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #ff6b6b, #4ecdc4);
+            background-attachment: fixed;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            overflow-y: auto;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        .bg-text {
+            position: fixed;
+            color: rgba(255, 255, 255, 0.15);
+            font-size: 2rem;
+            font-weight: bold;
+            pointer-events: none;
+            z-index: -1;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+
+        .container {
+            max-width: 800px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            animation: fadeIn 1s ease-in;
+            margin-bottom: 50px;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        p {
+            font-size: 1.2em;
+            line-height: 1.6;
+            margin-bottom: 20px;
+            animation: slideUp 0.5s ease-out;
+        }
+
+        .final-message {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 30px;
+            border-radius: 10px;
+            margin: 30px 0;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            font-size: 1.3em;
+            line-height: 1.8;
+            animation: pulse 3s infinite;
+        }
+
+        .love-text {
+            font-style: italic;
+            margin-top: 30px;
+            font-size: 1.3em;
+            color: #ffe66d;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            animation: heartbeat 1.5s infinite;
+        }
+
+        .heart {
+            display: inline-block;
+            color: #ff6b6b;
+            font-size: 1.3em;
+            animation: heartbeat 1.5s infinite;
+            margin: 0 5px;
+            text-shadow: 0 0 10px rgba(255, 107, 107, 0.7);
+        }
+
+        .emoji {
+            font-size: 2em;
+            margin: 10px;
+            display: inline-block;
+            animation: bounce 2s infinite;
+        }
+
+        .music-button {
+            background: linear-gradient(45deg, #ff9a9e, #fad0c4);
+            border: none;
+            border-radius: 50px;
+            padding: 15px 30px;
+            margin: 20px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+            animation: pulse 2s infinite;
+        }
+
+        .music-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+        }
+
+        .music-button:active {
+            transform: scale(0.98);
+        }
+
+        .music-icon {
+            margin-left: 10px;
+        }
+
+        /* --- הפופ-אפ החדש --- */
+        .retro-popup {
+            position: fixed;
+            bottom: 10%;
+            left: 50%;
+            transform: translate(-50%, 0) rotate(-6deg);
+            background: rgba(0, 0, 0, 0.85);
+            border: 3px dashed #ff6b6b;
+            padding: 25px 40px;
+            border-radius: 15px;
+            text-align: center;
+            z-index: 1000;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.6);
+            /* האנימציה שגורמת לו לקפוץ החוצה אחרי השהיה */
+            animation: popIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            opacity: 0;
+            animation-delay: 2s; /* מחכה 2 שניות כדי שהיא תתחיל לקרוא */
+        }
+
+        .retro-popup-text {
+            color: #fff;
+            font-size: 1.5rem;
+            font-family: 'Courier New', Courier, monospace;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 0px #000, -1px -1px 0 #ff6b6b;
+            font-weight: bold;
+        }
+
+        /* עיצוב כפתור הפיקסלים הישן */
+        .pixel-btn {
+            background-color: #c0c0c0;
+            border: 4px solid;
+            border-color: #ffffff #808080 #808080 #ffffff;
+            color: black;
+            font-family: 'Tahoma', 'MS Sans Serif', sans-serif;
+            font-weight: bold;
+            font-size: 1.5rem;
+            padding: 10px 40px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            box-shadow: 4px 4px 0px rgba(0,0,0,0.5);
+            transition: transform 0.1s;
+        }
+
+        .pixel-btn:active {
+            border-color: #808080 #ffffff #ffffff #808080;
+            background-color: #a0a0a0;
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0px rgba(0,0,0,0.5);
+        }
+
+        /* Animation keyframes */
+        @keyframes popIn {
+            0% { transform: translate(-50%, 50px) rotate(-20deg) scale(0); opacity: 0; }
+            100% { transform: translate(-50%, 0) rotate(-6deg) scale(1); opacity: 1; }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(255, 255, 255, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-20px); }
+            60% { transform: translateY(-10px); }
+        }
+
+        @keyframes heartbeat {
+            0% { transform: scale(1); }
+            25% { transform: scale(1.1); }
+            50% { transform: scale(1); }
+            75% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .sparkle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background-color: white;
+            animation: sparkle 1.5s infinite;
+        }
+
+        @keyframes sparkle {
+            0% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(0); opacity: 0; }
+        }
+
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            animation: confetti 5s ease-in-out infinite;
+            z-index: 1;
+        }
+
+        @keyframes confetti {
+            0% { transform: translateY(-100%) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(1000%) rotate(720deg); opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎂 הצלחת! 🎂</h1>
+
+        <div class="emoji-container">
+            <span class="emoji">🎉</span>
+            <span class="emoji">🎈</span>
+            <span class="emoji">🎁</span>
+            <span class="emoji">👑</span>
+        </div>
+
+        <div class="final-message">
+            <p>
+                אז הילית.<br />
+                מזל טוב את מדהימה, מגניבה, חכמה, מצחיקה, יפה, גאונה וממש ממש מהממת.<br />
+                אז בת 17 זה כבר לא בת 16.<br />
+                כל הכבוד ששרדת 17 שנה כבר. <br />
+                יותר מ4-5% מהאוכלוסייה!<br />
+                מדהים!<br />
+                טוב אז כבר אמרתי שאת יפה. כבר אמרתי שאת מצחיקה.<br />
+                זהו.<br />
+                מה אני עוד יכול להגיד....<br />
+                אה!<br />
+                את זה...<br />
+                <br />
+
+                <button id="playButton" class="music-button">
+                    <span class="music-icon">🎵</span>
+                    הכי יפה בעולם - מאור כהן
+                    <span class="music-icon">🎵</span>
+                </button>
+                <audio id="songAudio" src="b.mp3"></audio>
+
+                את כל כך מיוחדת, הילית. החיוך שלך מאיר כל חדר שאת נכנסת אליו. החוכמה שלך מרשימה אותי בכל פעם מחדש, איך את מצליחה לפתור כל בעיה ולראות לכולם בצורה כל כך פסיכית ויצירתית. העיניים מראות כמה את חכמה וכמה יש לך לב ענק. כשאת צוחקת, העולם כולו נראה מקום טוב יותר. הרגישות שלך לכולם פשוט מדהימה אותי כל הזמן. אני אוהב את הדרך שבה את מקשיבה, את הדרך שבה את חושבת, את הדרך המיוחדת שיש רק לך להסתכל על דברים. כשאנחנו ביחד, הזמן פשוט כל כך כיף. את לא רק יפה מבחוץ - את יפה גם מבפנים, ואני מעריץ כל חלק ממך. הלוואי שתראי את עצמך כפי שאני רואה אותך - מושלמת בדיוק כמו שאת.
+            </p>
+        </div>
+
+        <p class="love-text">
+            <span class="heart">❤️</span> אוהב אותך <span class="heart">❤️</span>
+        </p>
+
+    </div>
+
+    <div class="retro-popup">
+        <div class="retro-popup-text">(זה מה שהיה שנה שעברה, זוכרת?)</div>
+        <a href="second.html" class="pixel-btn">Begin</a>
+    </div>
+
+    <script>
+        // Music player functionality
+        const playButton = document.getElementById('playButton');
+        const songAudio = document.getElementById('songAudio');
+        let bgTextInterval;
+        let isPlaying = false;
+
+        playButton.addEventListener('click', function () {
+            if (songAudio.paused) {
+                songAudio.play();
+                playButton.innerHTML = '<span class="music-icon">⏸️</span> לעצור את המוזיקה <span class="music-icon">⏸️</span>';
+                isPlaying = true;
+                startBackgroundTextEffect();
+            } else {
+                songAudio.pause();
+                playButton.innerHTML = '<span class="music-icon">🎵</span> הכי יפה בעולם - מאור כהן <span class="music-icon">🎵</span>';
+                isPlaying = false;
+                stopBackgroundTextEffect();
+            }
+        });
+
+        // Background text effect
+        function startBackgroundTextEffect() {
+            if (bgTextInterval) clearInterval(bgTextInterval);
+
+            setTimeout(() => {
+                if (isPlaying) {
+                    bgTextInterval = setInterval(createBackgroundText, 300);
+                    for (let i = 0; i < 15; i++) {
+                        setTimeout(() => createBackgroundText(), i * 100);
+                    }
+                }
+            }, 3900);
+        }
+
+        function stopBackgroundTextEffect() {
+            clearInterval(bgTextInterval);
+            const bgTexts = document.querySelectorAll('.bg-text');
+            bgTexts.forEach(text => {
+                text.style.opacity = '0';
+                setTimeout(() => text.remove(), 500);
+            });
+        }
+
+        function createBackgroundText() {
+            if (!isPlaying) return;
+
+            const text = document.createElement('div');
+            text.className = 'bg-text';
+            text.textContent = 'הכי יפה בעולם';
+
+            text.style.left = Math.random() * 100 + 'vw';
+            text.style.top = Math.random() * 100 + 'vh';
+
+            const size = 1 + Math.random() * 3;
+            text.style.fontSize = size + 'rem';
+
+            const rotation = -30 + Math.random() * 60;
+            text.style.transform = `rotate(${rotation}deg)`;
+
+            document.body.appendChild(text);
+
+            setTimeout(() => {
+                text.style.opacity = '1';
+            }, 10);
+
+            const duration = 3000 + Math.random() * 4000;
+            setTimeout(() => {
+                text.style.opacity = '0';
+                setTimeout(() => text.remove(), 500);
+            }, duration);
+        }
+
+        // Add sparkle effect
+        function createSparkle() {
+            const sparkle = document.createElement('div');
+            sparkle.className = 'sparkle';
+            sparkle.style.left = Math.random() * window.innerWidth + 'px';
+            sparkle.style.top = Math.random() * window.innerHeight + 'px';
+            document.body.appendChild(sparkle);
+
+            setTimeout(() => {
+                sparkle.remove();
+            }, 1500);
+        }
+
+        // Add confetti effect
+        function createConfetti() {
+            const confetti = document.createElement('div');
+            confetti.className = 'confetti';
+            confetti.style.left = Math.random() * window.innerWidth + 'px';
+            confetti.style.backgroundColor = getRandomColor();
+            document.body.appendChild(confetti);
+
+            setTimeout(() => {
+                confetti.remove();
+            }, 5000);
+        }
+
+        // Random color generator
+        function getRandomColor() {
+            const colors = ['#ffe66d', '#ff6b6b', '#4ecdc4', '#ffffff', '#f7fff7'];
+            return colors[Math.floor(Math.random() * colors.length)];
+        }
+
+        // Create effects at intervals
+        setInterval(createSparkle, 300);
+        setInterval(createConfetti, 1000);
+
+        // Initial batch of effects
+        for (let i = 0; i < 20; i++) {
+            setTimeout(() => {
+                createSparkle();
+                if (i % 3 === 0) createConfetti();
+            }, i * 100);
+        }
+    </script>
+</body>
+</html>

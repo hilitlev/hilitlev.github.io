@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SYSTEM_COMPROMISED</title>
+    <link rel="icon" type="image/x-icon" href="heart_logo.png">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tracking.js/1.1.3/tracking-min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tracking.js/1.1.3/data/face-min.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #050505;
+            color: #0f0;
+            font-family: 'Courier New', Courier, monospace;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+            /* אפקט סריקה (Scanlines) */
+            body::before {
+                content: " ";
+                display: block;
+                position: absolute;
+                top: 0;
+                left: 0;
+                bottom: 0;
+                right: 0;
+                background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+                z-index: 10;
+                background-size: 100% 2px, 3px 100%;
+                pointer-events: none;
+            }
+
+        .terminal-text {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            text-align: right;
+            font-size: 1.2em;
+            text-shadow: 0 0 5px #0f0;
+            z-index: 5;
+        }
+
+        .camera-container {
+            position: relative;
+            width: 80%;
+            max-width: 600px;
+            border: 2px solid red;
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.5);
+            display: none;
+            animation: glitch-box 0.1s infinite;
+            /* חשוב כדי שהקואורדינטות של זיהוי הפנים יתאימו בדיוק לווידאו */
+            overflow: hidden;
+        }
+
+        video {
+            width: 100%;
+            height: auto;
+            /* פילטרים מלחיצים */
+            filter: contrast(1.8) brightness(0.6) sepia(1) hue-rotate(-50deg) saturate(4) invert(0.1);
+            display: block;
+            transform: scaleX(-1); /* אפקט מראה */
+        }
+
+        .recording-dot {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            width: 15px;
+            height: 15px;
+            background-color: red;
+            border-radius: 50%;
+            animation: blink 1s infinite;
+            z-index: 6;
+        }
+
+        .rec-text {
+            position: absolute;
+            top: 8px;
+            left: 35px;
+            color: red;
+            font-weight: bold;
+            z-index: 6;
+            letter-spacing: 2px;
+        }
+
+        /* ריבוע זיהוי הפנים האמיתי (המיקום והגודל ישתנו דרך ה-JS) */
+        .face-tracker {
+            position: absolute;
+            border: 2px dashed #0f0;
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.8) inset, 0 0 15px rgba(0, 255, 0, 0.8);
+            z-index: 6;
+            display: none; /* מוסתר עד שמזהה פנים */
+            justify-content: center;
+            align-items: flex-end;
+            transition: all 0.1s ease-out; /* תנועה חלקה יחסית */
+        }
+
+            .face-tracker::after {
+                content: "TARGET: HILIT [LOCKED]";
+                color: #000;
+                font-size: 0.8em;
+                font-weight: bold;
+                background: #0f0;
+                padding: 2px 5px;
+                margin-bottom: -20px;
+                white-space: nowrap;
+            }
+
+        #scary-face {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            object-fit: cover;
+            display: none;
+            z-index: 100;
+            filter: contrast(2.5) grayscale(0.2) saturate(2);
+            animation: extreme-glitch 0.1s infinite;
+        }
+
+        .proceed-btn {
+            display: none;
+            background: #000;
+            color: #0f0;
+            border: 1px solid #0f0;
+            padding: 15px 30px;
+            font-family: inherit;
+            font-size: 1.2em;
+            cursor: pointer;
+            text-decoration: none;
+            margin-top: 30px;
+            z-index: 5;
+            transition: all 0.2s;
+        }
+
+            .proceed-btn:hover {
+                background: #0f0;
+                color: #000;
+                box-shadow: 0 0 15px #0f0;
+            }
+
+        @keyframes blink {
+            0%, 100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0;
+            }
+        }
+
+        @keyframes glitch-box {
+            0% {
+                transform: translate(0)
+            }
+
+            20% {
+                transform: translate(-3px, 1px)
+            }
+
+            40% {
+                transform: translate(-1px, -3px)
+            }
+
+            60% {
+                transform: translate(3px, 2px)
+            }
+
+            80% {
+                transform: translate(1px, -1px)
+            }
+
+            100% {
+                transform: translate(0)
+            }
+        }
+
+        @keyframes extreme-glitch {
+            0% {
+                transform: scale(1) translate(0) invert(0);
+            }
+
+            50% {
+                transform: scale(1.05) translate(-10px, 10px) invert(1);
+            }
+
+            100% {
+                transform: scale(1) translate(10px, -10px) invert(0);
+            }
+        }
+
+        .bg-text {
+            position: fixed;
+            color: rgba(255, 255, 255, 0.15);
+            font-size: 2rem;
+            font-weight: bold;
+            pointer-events: none;
+            z-index: -1;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+    </style>
+</head>
+<body>
+
+    <audio id="glitchSound" src="glitch_sound.mp3"></audio>
+
+    <div class="terminal-text" id="log">
+        > מייצר חיבור מאובטח לשרת...<br>
+    </div>
+
+    <div class="camera-container" id="camBox">
+        <div class="recording-dot"></div>
+        <div class="rec-text">REC</div>
+        <div class="face-tracker" id="faceTracker"></div>
+        <video id="webcam" autoplay playsinline muted></video>
+    </div>
+
+    <img id="scary-face" src="haim_scary.jpg" alt="BOO">
+
+    <a href="puzzle1.html" class="proceed-btn" id="nextPuzzleBtn">> התאוששת? בואי נתחיל באמת</a>
+
+   <audio id="glitchSound" src="glitch_sound.mp3"></audio>
+    <audio id="ominousVoice" src="ominous_voice.mp3"></audio>
+    <audio id="realJourneyVoice" src="real_journey.mp3"></audio> <div class="terminal-text" id="log">
+        > מייצר חיבור מאובטח לשרת...<br>
+    </div>
+
+    <div class="camera-container" id="camBox">
+        <div class="recording-dot"></div>
+        <div class="rec-text">REC</div>
+        <div class="face-tracker" id="faceTracker"></div>
+        <video id="webcam" autoplay playsinline muted></video>
+    </div>
+
+    <img id="scary-face" src="haim_scary.jpg" alt="BOO">
+
+    <a href="puzzle1.html" class="proceed-btn" id="nextPuzzleBtn">> התאוששת? בואי נתחיל באמת</a>
+
+    <script>
+        const videoElement = document.getElementById('webcam');
+        const camBox = document.getElementById('camBox');
+        const logElement = document.getElementById('log');
+        const scaryFace = document.getElementById('scary-face');
+        const glitchSound = document.getElementById('glitchSound');
+        const ominousVoice = document.getElementById('ominousVoice');
+        const realJourneyVoice = document.getElementById('realJourneyVoice');
+        const nextPuzzleBtn = document.getElementById('nextPuzzleBtn');
+        const faceTrackerDiv = document.getElementById('faceTracker');
+
+        let isScareDone = false; 
+
+        // פונקציה להוספת טקסט לטרמינל
+        function addLog(text, delay) {
+            setTimeout(() => {
+                logElement.innerHTML += `> ${text}<br>`;
+            }, delay);
+        }
+
+        // הפעלת המצלמה מיד
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                videoElement.srcObject = stream;
+
+                // ממתין שהווידאו יתחיל לרוץ
+                videoElement.onloadedmetadata = () => {
+                    addLog("עוקף אמצעי הגנה מקומיים...", 1000);
+                    addLog("ניגש להתקני מדיה. מצלמה: פעילה.", 2500);
+
+                    setTimeout(() => {
+                        camBox.style.display = 'block';
+                        addLog("סריקה ביומטרית הופעלה.", 3000);
+                        
+                        // מנגן את קובץ האודיו המלחיץ והמושקע שהכנת!
+                        setTimeout(() => { ominousVoice.play(); }, 3500);
+                        
+                        addLog("המטרה אותרה. נא לא לזוז.", 4500);
+                        addLog("מיירט נתונים...", 6000);
+                        
+                        startRealFaceTracking();
+                    }, 3000);
+
+                    // הג'אמפ-סקאר מופיע אחרי 10 שניות
+                    setTimeout(() => {
+                        triggerJumpscare(stream);
+                    }, 10000);
+                };
+            })
+            .catch(err => {
+                logElement.innerHTML += `> שגיאה: המטרה חסמה גישה למצלמה. עוקף מערכת...<br>`;
+                nextPuzzleBtn.style.display = 'block';
+            });
+
+        function startRealFaceTracking() {
+            const tracker = new tracking.ObjectTracker('face');
+            tracker.setInitialScale(4);
+            tracker.setStepSize(2);
+            tracker.setEdgesDensity(0.1);
+
+            tracking.track('#webcam', tracker);
+
+            tracker.on('track', function(event) {
+                if (isScareDone) return; 
+
+                if (event.data.length === 0) {
+                    faceTrackerDiv.style.display = 'none';
+                } else {
+                    faceTrackerDiv.style.display = 'flex';
+                    
+                    event.data.forEach(function(rect) {
+                        const videoWidth = videoElement.offsetWidth;
+                        const mirroredX = videoWidth - rect.x - rect.width;
+
+                        const scaleXRatio = videoElement.offsetWidth / videoElement.videoWidth;
+                        const scaleYRatio = videoElement.offsetHeight / videoElement.videoHeight;
+
+                        faceTrackerDiv.style.left = (mirroredX * scaleXRatio) + 'px';
+                        faceTrackerDiv.style.top = (rect.y * scaleYRatio) + 'px';
+                        faceTrackerDiv.style.width = (rect.width * scaleXRatio) + 'px';
+                        faceTrackerDiv.style.height = (rect.height * scaleYRatio) + 'px';
+                    });
+                }
+            });
+        }
+
+        function triggerJumpscare(stream) {
+            isScareDone = true;
+            glitchSound.play();
+            scaryFace.style.display = 'block';
+            camBox.style.display = 'none'; 
+            faceTrackerDiv.style.display = 'none';
+
+            // אחרי הג'אמפסקאר
+            setTimeout(() => {
+                scaryFace.style.display = 'none';
+                logElement.innerHTML = "> שלום הילית.<br>> ציפיתי לך.<br>> המסע האמיתי מתחיל עכשיו.<br>";
+                
+                // מנגן את הקול של "המסע מתחיל"
+                setTimeout(() => { realJourneyVoice.play(); }, 500);
+
+                // כיבוי המצלמה
+                stream.getTracks().forEach(track => track.stop());
+
+                // הופעת כפתור ההמשך
+                nextPuzzleBtn.style.display = 'block';
+            }, 600); 
+        }
+    </script>
+</body>
+</html>

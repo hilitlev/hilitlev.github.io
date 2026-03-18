@@ -1,0 +1,1363 @@
+﻿<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Windows 98 - עוזר וירטואלי</title>
+    <link rel="icon" type="image/x-icon" href="heart_logo.png">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Tahoma', 'MS Sans Serif', sans-serif;
+            user-select: none;
+        }
+
+        body {
+            background-color: #000; /* רקע שחור עמוק הכי מאחור */
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            perspective: 1500px;
+        }
+
+        /* --- ה-iframe שבו ייטען הדף הבא (שומר על המוזיקה ברקע) --- */
+        #next-page-frame {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            border: none;
+            z-index: 1;
+            display: block; /* נטען ברקע מההתחלה */
+        }
+
+        /* --- תמונת האלבום הענקית שמכסה את כל המסך (1920x1080 / Fullscreen) --- */
+        #album-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh; /* מכסה 100% מהמסך */
+            background-image: url('album.png');
+            background-size: 100% 100%; /* מותח את התמונה כדי שתכסה הכל בצורה מושלמת */
+            background-position: center;
+            background-repeat: no-repeat;
+            z-index: 2; /* מאחורי קיר הטורקיז, אבל מעל ה-iframe */
+            opacity: 0;
+            display: none;
+            transform-origin: bottom center; /* נקודת הציר שממנה התמונה תיפול אחורה (למטה) */
+            transition: opacity 1s;
+        }
+
+            #album-background.clickable {
+                cursor: pointer;
+                pointer-events: auto;
+                z-index: 99999;
+                animation: pulse-album 2s infinite;
+            }
+
+            /* האנימציה של האלבום כחומת ענק שנופלת אחורה וחושפת את ה-iframe */
+            #album-background.fall-back {
+                transform: perspective(2000px) rotateX(90deg); /* נופל 90 מעלות אחורה */
+                opacity: 0;
+                pointer-events: none;
+                transition: transform 1.5s cubic-bezier(0.5, 0, 1, 1), opacity 1.2s ease-in;
+            }
+
+        @keyframes pulse-album {
+            0% {
+                filter: brightness(1);
+            }
+
+            50% {
+                filter: brightness(1.3);
+            }
+
+            100% {
+                filter: brightness(1);
+            }
+        }
+
+        /* --- רקע הטורקיז שיסתיר את הרווחים לפני השבירה --- */
+        #solid-teal-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: #008080;
+            z-index: 3;
+        }
+
+        /* --- קיר הטורקיז (הרסיסים) --- */
+        #wall-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 4;
+            visibility: hidden; /* מוסתר עד רגע ההצלחה כדי למנוע פסים */
+        }
+
+        .shard {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: #008080;
+            transition: transform 2.5s cubic-bezier(0.6, -0.28, 0.735, 0.045);
+        }
+
+        .shard-1 {
+            clip-path: polygon(0% 0%, 25% 0%, 15% 30%, 0% 40%);
+        }
+
+        .shard-2 {
+            clip-path: polygon(25% 0%, 60% 0%, 45% 40%, 15% 30%);
+        }
+
+        .shard-3 {
+            clip-path: polygon(60% 0%, 100% 0%, 100% 20%, 75% 45%, 45% 40%);
+        }
+
+        .shard-4 {
+            clip-path: polygon(0% 40%, 15% 30%, 45% 40%, 35% 60%, 0% 75%);
+        }
+
+        .shard-5 {
+            clip-path: polygon(45% 40%, 75% 45%, 85% 80%, 55% 70%, 35% 60%);
+        }
+
+        .shard-6 {
+            clip-path: polygon(75% 45%, 100% 20%, 100% 65%, 85% 80%);
+        }
+
+        .shard-7 {
+            clip-path: polygon(0% 75%, 35% 60%, 20% 100%, 0% 100%);
+        }
+
+        .shard-8 {
+            clip-path: polygon(35% 60%, 55% 70%, 60% 100%, 20% 100%);
+        }
+
+        .shard-9 {
+            clip-path: polygon(55% 70%, 85% 80%, 100% 100%, 60% 100%);
+        }
+
+        .shard-10 {
+            clip-path: polygon(85% 80%, 100% 65%, 100% 100%);
+        }
+
+        /* --- ציור הסדקים (מאחורי הממשק, מעל הקיר) --- */
+        #crack-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 5;
+            pointer-events: none;
+            display: none;
+        }
+
+        .crack-path {
+            stroke-dasharray: 500;
+            stroke-dashoffset: 500;
+        }
+
+        .crack-active {
+            animation: draw-crack 1s ease-out forwards;
+        }
+
+        @keyframes draw-crack {
+            to {
+                stroke-dashoffset: 0;
+            }
+        }
+
+        /* --- אנימציית רעידת אדמה עדינה --- */
+        .shaking {
+            animation: earthquake 0.5s infinite linear;
+        }
+
+        @keyframes earthquake {
+            0% {
+                transform: translate(1px, 0.5px) rotate(0deg);
+            }
+
+            20% {
+                transform: translate(-0.5px, -1px) rotate(-0.5deg);
+            }
+
+            40% {
+                transform: translate(-1px, 0px) rotate(0.5deg);
+            }
+
+            60% {
+                transform: translate(1px, 1px) rotate(0deg);
+            }
+
+            80% {
+                transform: translate(-0.5px, 1px) rotate(-0.5deg);
+            }
+
+            100% {
+                transform: translate(0.5px, -1px) rotate(0.5deg);
+            }
+        }
+
+        /* מחלקת הנפילה לאלמנטים של הממשק --- צונחים למטה כבד --- */
+        .gravity-fall {
+            animation: dropDown 1s cubic-bezier(0.55, 0.085, 0.68, 0.53) forwards !important;
+            pointer-events: none !important;
+        }
+
+        @keyframes dropDown {
+            0% {
+                transform: translateY(0) rotate(0deg);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateY(150vh) rotate(15deg);
+                opacity: 0;
+            }
+        }
+
+        /* --- חלונות ווינדוס 98 --- */
+        .win98-window {
+            background-color: #c0c0c0;
+            border: 2px solid;
+            border-color: #dfdfdf #0a0a0a #0a0a0a #dfdfdf;
+            box-shadow: 2px 2px 10px rgba(0,0,0,0.5);
+            position: absolute;
+            z-index: 10;
+        }
+
+        #main-window {
+            width: 450px;
+            display: none;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        #error-window {
+            width: 320px;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+            z-index: 150;
+        }
+
+        .title-bar {
+            background: linear-gradient(90deg, #000080, #1084d0);
+            color: white;
+            padding: 3px 5px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+        }
+
+        .title-bar-controls {
+            display: flex;
+            gap: 2px;
+        }
+
+        .win-btn {
+            background: #c0c0c0;
+            border: 2px solid;
+            border-color: #dfdfdf #0a0a0a #0a0a0a #dfdfdf;
+            width: 16px;
+            height: 16px;
+            font-weight: bold;
+            font-size: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            color: black;
+        }
+
+        .window-content {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .error-content {
+            padding: 20px;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            text-align: right;
+            gap: 15px;
+            font-size: 14px;
+        }
+
+        .mascot-container {
+            margin-bottom: 20px;
+            animation: float 2s infinite ease-in-out;
+        }
+
+            .mascot-container img {
+                width: 80px;
+                image-rendering: pixelated;
+            }
+
+        .dialog-box {
+            background: white;
+            border: 2px solid;
+            border-color: #0a0a0a #dfdfdf #dfdfdf #0a0a0a;
+            padding: 15px;
+            width: 100%;
+            min-height: 80px;
+            margin-bottom: 10px;
+            text-align: right;
+            font-size: 16px;
+            line-height: 1.5;
+        }
+
+        .skip-btn {
+            background: #c0c0c0;
+            border: 2px solid;
+            border-color: #dfdfdf #0a0a0a #0a0a0a #dfdfdf;
+            padding: 2px 10px;
+            font-size: 12px;
+            cursor: pointer;
+            margin-bottom: 15px;
+            align-self: flex-end;
+        }
+
+            .skip-btn:active {
+                border-color: #0a0a0a #dfdfdf #dfdfdf #0a0a0a;
+            }
+
+        .buttons-container {
+            display: flex;
+            gap: 20px;
+            width: 100%;
+            justify-content: center;
+            position: relative;
+            height: 40px;
+        }
+
+        .action-btn {
+            background: #c0c0c0;
+            border: 2px solid;
+            border-color: #dfdfdf #0a0a0a #0a0a0a #dfdfdf;
+            padding: 5px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            min-width: 80px;
+        }
+
+            .action-btn:active {
+                border-color: #0a0a0a #dfdfdf #dfdfdf #0a0a0a;
+            }
+
+        #btn-no {
+            position: absolute;
+            left: 50px;
+            transition: all 0.1s;
+        }
+
+        #btn-yes {
+            position: absolute;
+            right: 50px;
+        }
+
+        /* --- שולחן העבודה --- */
+        #fake-desktop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: transparent;
+            display: none;
+            z-index: 100;
+            cursor: default;
+        }
+
+        .desktop-icons {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            padding: 20px;
+            align-items: flex-start;
+        }
+
+        .icon {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 80px;
+            cursor: pointer;
+        }
+
+            .icon img {
+                width: 40px;
+                height: 40px;
+                margin-bottom: 5px;
+                image-rendering: pixelated;
+            }
+
+            .icon span {
+                color: white;
+                font-size: 12px;
+                text-align: center;
+                padding: 2px;
+            }
+
+            .icon:active span, .icon.selected span {
+                background-color: #000080;
+                border: 1px dotted white;
+            }
+
+        .taskbar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 28px;
+            background-color: #c0c0c0;
+            border-top: 2px solid #dfdfdf;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 2px;
+        }
+
+        .start-btn {
+            background: #c0c0c0;
+            border: 2px solid;
+            border-color: #dfdfdf #0a0a0a #0a0a0a #dfdfdf;
+            height: 100%;
+            padding: 0 5px;
+            display: flex;
+            align-items: center;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .taskbar-clock {
+            border: 2px solid;
+            border-color: #0a0a0a #dfdfdf #dfdfdf #0a0a0a;
+            height: 100%;
+            padding: 0 10px;
+            display: flex;
+            align-items: center;
+            font-size: 12px;
+        }
+
+        /* --- הדפדפן הקריפי --- */
+        #mascot-pusher {
+            position: fixed;
+            top: 30%;
+            right: -150px;
+            width: 120px;
+            z-index: 1000;
+            transition: right 1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: none;
+            filter: drop-shadow(-5px 5px 5px rgba(0,0,0,0.5));
+        }
+
+        #creepy-browser {
+            position: fixed;
+            top: 5vh;
+            right: -100vw;
+            width: 85vw;
+            height: 85vh;
+            background-color: #111;
+            border: 2px solid #333;
+            box-shadow: 0 0 30px rgba(255, 0, 0, 0.4);
+            z-index: 999;
+            display: flex;
+            flex-direction: column;
+            transition: right 1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            font-family: 'Courier New', Courier, monospace;
+            direction: rtl;
+        }
+
+        .browser-header {
+            background-color: #222;
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            border-bottom: 2px solid #444;
+        }
+
+        .browser-url {
+            background-color: #000;
+            color: #0f0;
+            flex-grow: 1;
+            margin: 0 15px;
+            padding: 5px 10px;
+            border: 1px solid #555;
+            border-radius: 3px;
+            font-size: 14px;
+            direction: ltr;
+            text-align: left;
+        }
+
+        .profile-pic {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 2px solid red;
+            overflow: hidden;
+            box-shadow: 0 0 15px red;
+            background-image: url('https://upload.wikimedia.org/wikipedia/commons/7/7c/Profile_avatar_placeholder_large.png');
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: crosshair;
+        }
+
+            .profile-pic video {
+                width: 150%;
+                height: 150%;
+                object-fit: cover;
+                transform: scaleX(-1);
+                filter: grayscale(1) contrast(1.5) sepia(1) hue-rotate(-50deg);
+                transition: opacity 0.3s ease;
+            }
+
+            .profile-pic:hover video {
+                opacity: 0;
+            }
+
+        .browser-body {
+            display: flex;
+            flex-grow: 1;
+            height: calc(100% - 100px);
+        }
+
+        .osint-panel {
+            width: 300px;
+            background: #050505;
+            border-left: 2px solid #333;
+            padding: 15px;
+            color: #0f0;
+            font-size: 0.85rem;
+            overflow-y: auto;
+            direction: ltr;
+            text-align: left;
+        }
+
+        .osint-title {
+            color: red;
+            font-weight: bold;
+            border-bottom: 1px dashed red;
+            padding-bottom: 5px;
+            margin-bottom: 10px;
+        }
+
+        .browser-content {
+            padding: 30px;
+            color: #fff;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.5s;
+        }
+
+        .scary-search-logo {
+            font-size: 3.5rem;
+            color: #ff3333;
+            font-weight: bold;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 0px #000;
+            letter-spacing: 5px;
+        }
+
+        .scary-search-bar {
+            width: 80%;
+            background: #000;
+            border: 1px solid red;
+            padding: 15px;
+            color: #0f0;
+            font-size: 1.2rem;
+            border-radius: 25px;
+            box-shadow: 0 0 10px rgba(255,0,0,0.2);
+            margin-bottom: 40px;
+            text-align: center;
+        }
+
+        .proceed-btn {
+            background: transparent;
+            color: red;
+            border: 1px solid red;
+            padding: 10px 20px;
+            font-family: inherit;
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: none;
+            transition: all 0.2s;
+        }
+
+            .proceed-btn:hover {
+                background: red;
+                color: #000;
+                box-shadow: 0 0 15px red;
+            }
+
+        .glitch-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: black;
+            display: none;
+            z-index: 50;
+        }
+
+        /* --- המסמך המסווג --- */
+        #classified-document {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            width: 0;
+            height: 0;
+            background: #f4f4f0;
+            color: #000;
+            border: 2px solid #333;
+            box-shadow: 0 0 50px rgba(255,0,0,0.3);
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            padding: 40px;
+            font-family: 'Courier New', Courier, monospace;
+            transition: all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            opacity: 0;
+            overflow: hidden;
+            background-image: repeating-linear-gradient(transparent, transparent 24px, rgba(0,0,0,0.05) 25px);
+        }
+
+            #classified-document.open {
+                width: 80vw;
+                height: 85vh;
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+
+        .doc-header {
+            border-bottom: 3px double #000;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .top-secret-stamp {
+            color: red;
+            font-size: 2rem;
+            font-weight: bold;
+            border: 3px solid red;
+            padding: 5px 15px;
+            display: inline-block;
+            transform: rotate(-5deg);
+            margin-bottom: 10px;
+        }
+
+        #doc-riddle-text {
+            font-size: 1.3rem;
+            line-height: 1.8;
+            font-weight: bold;
+            white-space: pre-wrap;
+        }
+
+        .voice-auth-container {
+            margin-top: auto;
+            background: #222;
+            color: #0f0;
+            padding: 20px;
+            border-radius: 5px;
+            text-align: center;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .mic-icon {
+            font-size: 2.5rem;
+            color: red;
+            animation: pulse-mic 1.5s infinite;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 70px;
+            height: 70px;
+            background: rgba(255, 0, 0, 0.1);
+            border-radius: 50%;
+            border: 2px dashed red;
+            line-height: 1;
+        }
+
+        #voice-feedback {
+            margin-top: 10px;
+            color: #ffeb3b;
+            font-weight: bold;
+        }
+
+        /* --- פופ-אפ שגיאה אדום ממוקד במרכז --- */
+        #red-error-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 450px;
+            background-color: #000;
+            border: 4px solid red;
+            box-shadow: 0 0 30px rgba(255, 0, 0, 0.8), 0 0 15px red inset;
+            color: white;
+            z-index: 9999;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+            font-family: 'Courier New', Courier, monospace;
+            text-align: center;
+            animation: popup-shake 0.3s cubic-bezier(.36,.07,.19,.97) both infinite;
+        }
+
+        .error-popup-title {
+            font-size: 3rem;
+            font-weight: bold;
+            color: red;
+            text-shadow: 2px 2px 0px #000;
+            margin-bottom: 15px;
+            direction: ltr;
+        }
+
+        .error-popup-subtitle {
+            font-size: 1.2rem;
+            color: white;
+        }
+
+        .access-granted-stamp {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-15deg);
+            color: #0f0;
+            border: 5px solid #0f0;
+            font-size: 4rem;
+            font-weight: bold;
+            padding: 20px;
+            z-index: 9999;
+            text-shadow: 0 0 20px #0f0;
+            box-shadow: 0 0 20px #0f0, inset 0 0 20px #0f0;
+            font-family: 'Courier New';
+            animation: stamp-in 0.5s ease forwards;
+        }
+
+        @keyframes stamp-in {
+            0% {
+                transform: translate(-50%, -50%) scale(2) rotate(-15deg);
+                opacity: 0;
+            }
+
+            100% {
+                transform: translate(-50%, -50%) scale(1) rotate(-15deg);
+                opacity: 1;
+            }
+        }
+
+        @keyframes pulse-mic {
+            0% {
+                transform: scale(1);
+                box-shadow: 0 0 0 rgba(255, 0, 0, 0.5);
+            }
+
+            50% {
+                transform: scale(1.1);
+                box-shadow: 0 0 20px rgba(255, 0, 0, 0.8);
+            }
+
+            100% {
+                transform: scale(1);
+                box-shadow: 0 0 0 rgba(255, 0, 0, 0.5);
+            }
+        }
+
+        @keyframes popup-shake {
+            0% {
+                transform: translate(-50%, -50%) rotate(0deg);
+            }
+
+            20% {
+                transform: translate(calc(-50% - 10px), calc(-50% + 10px)) rotate(-2deg);
+                filter: invert(1);
+            }
+
+            40% {
+                transform: translate(calc(-50% + 10px), calc(-50% - 10px)) rotate(2deg);
+                filter: invert(0);
+            }
+
+            60% {
+                transform: translate(calc(-50% - 10px), calc(-50% - 10px)) rotate(-2deg);
+            }
+
+            80% {
+                transform: translate(calc(-50% + 10px), calc(-50% + 10px)) rotate(2deg);
+                filter: invert(1);
+            }
+
+            100% {
+                transform: translate(-50%, -50%) rotate(0deg);
+                filter: invert(0);
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <audio id="typeSound" src="type.mp3" preload="auto" loop></audio>
+    <audio id="errorSound" src="error.mp3" preload="auto"></audio>
+    <audio id="crashSound" src="crash.mp3" preload="auto"></audio>
+    <audio id="successSound" src="success.mp3" preload="auto"></audio>
+    <audio id="vaultSong" src="song.mp3" preload="auto"></audio>
+
+    <iframe id="next-page-frame" src="entrance.html"></iframe>
+
+    <div id="album-background"></div>
+
+    <div id="solid-teal-bg"></div>
+
+    <div id="wall-container">
+        <div class="shard shard-1"></div>
+        <div class="shard shard-2"></div>
+        <div class="shard shard-3"></div>
+        <div class="shard shard-4"></div>
+        <div class="shard shard-5"></div>
+        <div class="shard shard-6"></div>
+        <div class="shard shard-7"></div>
+        <div class="shard shard-8"></div>
+        <div class="shard shard-9"></div>
+        <div class="shard shard-10"></div>
+    </div>
+
+    <svg id="crack-overlay" viewBox="0 0 100 100" preserveAspectRatio="none">
+        <path d="M 50 50 L 35 15 L 20 0 M 50 50 L 70 30 L 90 10 L 100 0 M 50 50 L 40 70 L 10 100 M 50 50 L 65 80 L 80 100 M 50 50 L 10 40 L 0 30 M 50 50 L 85 55 L 100 65" stroke="#111" stroke-width="0.8" fill="none" class="crack-path" />
+        <path d="M 35 15 L 10 40 M 70 30 L 85 55 M 40 70 L 65 80" stroke="#111" stroke-width="0.4" fill="none" class="crack-path" />
+    </svg>
+
+    <div class="glitch-overlay" id="black-screen"></div>
+
+    <div class="win98-window" id="main-window">
+        <div class="title-bar">
+            <span>Hilit_Companion_v1.0.exe</span>
+            <div class="title-bar-controls">
+                <div class="win-btn">_</div><div class="win-btn">□</div><div class="win-btn" onclick="fakeClose()">X</div>
+            </div>
+        </div>
+        <div class="window-content">
+            <div class="mascot-container">
+                <img src="h.png" alt="Mascot">
+            </div>
+            <div class="dialog-box" id="text-box"></div>
+
+            <button class="skip-btn" id="skip-btn">דילוג >></button>
+
+            <div class="buttons-container" id="buttons" style="display: none;">
+                <button class="action-btn" id="btn-yes">כן!</button>
+                <button class="action-btn" id="btn-no" onclick="buttonno()">לא</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="fake-desktop">
+        <div class="desktop-icons">
+            <div class="icon" id="fake-computer">
+                <img src="https://win98icons.alexmeub.com/icons/png/computer_explorer-4.png" alt="My Computer">
+                <span>המחשב שלי</span>
+            </div>
+            <div class="icon" id="fake-chrome">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/e/e1/Google_Chrome_icon_%28February_2022%29.svg" alt="Chrome">
+                <span>Google Chrome</span>
+            </div>
+        </div>
+
+        <div class="win98-window" id="error-window">
+            <div class="title-bar">
+                <span>שגיאת מערכת</span>
+                <div class="title-bar-controls">
+                    <div class="win-btn" onclick="closeError()">X</div>
+                </div>
+            </div>
+            <div class="error-content">
+                <img src="https://win98icons.alexmeub.com/icons/png/msg_error-0.png" alt="Error">
+                <span style="font-weight: bold;">זה לא המחשב שלך יותר.</span>
+            </div>
+            <div style="padding: 10px; text-align: center; background: #c0c0c0;">
+                <button class="action-btn" onclick="closeError()">אישור</button>
+            </div>
+        </div>
+
+        <div class="taskbar">
+            <div class="start-btn">⊞ התחל</div>
+            <div class="taskbar-clock" id="clock">12:00</div>
+        </div>
+    </div>
+
+    <img src="h.png" id="mascot-pusher" alt="Pusher">
+
+    <div id="creepy-browser">
+        <div class="browser-header">
+            <div class="profile-pic" title="Hover to hide identity">
+                <video id="profile-cam" autoplay playsinline muted></video>
+            </div>
+            <div class="browser-url">
+                > ssh root@hilit-local -p 443 --bypass-proxy
+            </div>
+            <div style="color:red; font-weight:bold; cursor:pointer; font-size: 20px;" onclick="fakeClose()">X</div>
+        </div>
+
+        <div class="browser-body">
+            <div class="browser-content" id="browser-search-area">
+                <div class="scary-search-logo">D G O O L E</div>
+                <div class="scary-search-bar" id="creepy-search-box">|</div>
+                <button class="proceed-btn" id="goNextBtn" onclick="openClassifiedDocument()">היכנסי למסמך המסווג</button>
+            </div>
+
+            <div class="osint-panel">
+                <div class="osint-title">TARGET FOOTPRINT ANALYSIS</div>
+                <div id="osint-log-text"></div>
+            </div>
+        </div>
+
+        <div id="classified-document">
+            <div class="doc-header">
+                <div class="top-secret-stamp">סודי ביותר - פרוטוקול B.O.O.B.I.E</div>
+                <div>תיק חקירה מזהה: H-2026 | אובייקט: הילית</div>
+                <div style="font-size: 10px; color: #888; text-align: left; margin-top:5px; direction:ltr;"></div>
+            </div>
+
+            <div id="doc-riddle-text"></div>
+
+            <div class="voice-auth-container" id="voice-auth">
+                <div class="mic-icon">🎤</div>
+                <div id="voice-feedback">מערכת זיהוי קולי פעילה. אנא אמרי את סיסמת הגישה עכשיו.</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="red-error-popup">
+        <div class="error-popup-title">ACCESS DENIED</div>
+        <div class="error-popup-subtitle">UNAUTHORIZED VOICE PRINT</div>
+    </div>
+
+    <script>
+        const mainWindow = document.getElementById('main-window');
+        const textBox = document.getElementById('text-box');
+        const buttonsContainer = document.getElementById('buttons');
+        const btnNo = document.getElementById('btn-no');
+        const btnYes = document.getElementById('btn-yes');
+        const skipBtn = document.getElementById('skip-btn');
+        const typeSound = document.getElementById('typeSound');
+        const errorSound = document.getElementById('errorSound');
+        const crashSound = document.getElementById('crashSound');
+        const successSound = document.getElementById('successSound');
+        const vaultSong = document.getElementById('vaultSong');
+
+        const fakeDesktop = document.getElementById('fake-desktop');
+        const blackScreen = document.getElementById('black-screen');
+        const fakeChrome = document.getElementById('fake-chrome');
+        const fakeComputer = document.getElementById('fake-computer');
+        const errorWindow = document.getElementById('error-window');
+
+        const mascotPusher = document.getElementById('mascot-pusher');
+        const creepyBrowser = document.getElementById('creepy-browser');
+        const profileCam = document.getElementById('profile-cam');
+        const creepySearchBox = document.getElementById('creepy-search-box');
+        const goNextBtn = document.getElementById('goNextBtn');
+        const osintLogText = document.getElementById('osint-log-text');
+
+        const docElement = document.getElementById('classified-document');
+        const docRiddleText = document.getElementById('doc-riddle-text');
+        const voiceAuth = document.getElementById('voice-auth');
+        const voiceFeedback = document.getElementById('voice-feedback');
+        const redErrorPopup = document.getElementById('red-error-popup');
+
+        const albumBackground = document.getElementById('album-background');
+        const crackOverlay = document.getElementById('crack-overlay');
+        const solidTealBg = document.getElementById('solid-teal-bg');
+        const wallContainer = document.getElementById('wall-container');
+
+        setInterval(() => {
+            const now = new Date();
+            document.getElementById('clock').innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }, 1000);
+
+        const dialogue = [
+            "היי הילית! (:",
+            "אני העוזר הווירטואלי החדש שלך. לב תכנת אותי במיוחד בשבילך.",
+            "יש לנו דברים לעשות היום לכבוד יום ההולדת שלך.",
+            "לפני שנתחיל במסע האמיתי ולפני שאשחרר לך את המחשב...",
+            "האם את מוכנה לסמוך עליי ולתת לי שליטה מלאה? כי אני הוא הבוס!"
+        ];
+
+        let currentLine = 0;
+        let isSkipped = false;
+        let typingTimeout;
+        let nextLineTimeout;
+
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                mainWindow.style.display = 'block';
+                typeWriter(dialogue[currentLine]);
+            }, 500);
+        });
+
+        function typeWriter(text, i = 0) {
+            if (isSkipped) return;
+
+            if (i === 0) {
+                textBox.innerHTML = "";
+                typeSound.currentTime = 0;
+                typeSound.play().catch(e => console.log("Audio waiting for interaction..."));
+            }
+
+            if (i < text.length) {
+                textBox.innerHTML += text.charAt(i);
+                typingTimeout = setTimeout(() => typeWriter(text, i + 1), 50);
+            } else {
+                typeSound.pause();
+                nextLineTimeout = setTimeout(nextLine, 2500);
+            }
+        }
+
+        function nextLine() {
+            if (isSkipped) return;
+            currentLine++;
+            if (currentLine < dialogue.length) {
+                typeWriter(dialogue[currentLine]);
+            } else {
+                showButtons();
+            }
+        }
+
+        function showButtons() {
+            skipBtn.style.display = 'none';
+            buttonsContainer.style.display = 'flex';
+        }
+
+        skipBtn.addEventListener('click', function () {
+            isSkipped = true;
+            clearTimeout(typingTimeout);
+            clearTimeout(nextLineTimeout);
+            typeSound.pause();
+            textBox.innerHTML = dialogue[dialogue.length - 1];
+            showButtons();
+        });
+
+        function buttonno() {
+            errorSound.currentTime = 0;
+            errorSound.play().catch(e => { });
+            const randomX = Math.floor(Math.random() * 200);
+            const randomY = Math.floor(Math.random() * 40) - 20;
+            btnNo.style.left = randomX + 'px';
+            btnNo.style.top = randomY + 'px';
+            const taunts = ["באמת?", "ניסיון יפה.", "אסור ללחוץ כאן.", "את חייבת להסכים."];
+            btnNo.innerText = taunts[Math.floor(Math.random() * taunts.length)];
+            let currentScale = parseFloat(btnYes.style.transform.replace('scale(', '').replace(')', '')) || 1;
+            btnYes.style.transform = `scale(${currentScale + 0.1})`;
+        }
+
+        btnNo.addEventListener('mouseover', buttonno);
+
+        function fakeClose() {
+            errorSound.play();
+            textBox.innerHTML = "<span style='color:red; font-weight:bold;'>פעולה לא חוקית. אין דרך החוצה.</span>";
+        }
+
+        btnYes.addEventListener('click', function () {
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen().catch(err => console.log(err));
+            }
+            mainWindow.style.display = 'none';
+            blackScreen.style.display = 'block';
+            setTimeout(() => {
+                blackScreen.style.display = 'none';
+                fakeDesktop.style.display = 'block';
+            }, 1000);
+        });
+
+        fakeComputer.addEventListener('click', function () {
+            this.classList.add('selected');
+            errorSound.currentTime = 0;
+            errorSound.play();
+            errorWindow.style.display = 'block';
+        });
+
+        function closeError() {
+            errorWindow.style.display = 'none';
+            fakeComputer.classList.remove('selected');
+        }
+
+        fakeChrome.addEventListener('click', function () {
+            this.classList.add('selected');
+
+            setTimeout(() => {
+                crashSound.play();
+                navigator.mediaDevices.getUserMedia({ video: true })
+                    .then(stream => { profileCam.srcObject = stream; })
+                    .catch(err => console.log('Camera blocked'));
+
+                mascotPusher.style.display = 'block';
+
+                setTimeout(() => {
+                    mascotPusher.style.right = '78vw';
+                    creepyBrowser.style.right = '10vw';
+
+                    setTimeout(() => { mascotPusher.style.right = '-150px'; }, 1200);
+
+                    setTimeout(() => {
+                        runOsintLog();
+                        typeScarySearch("איך למצוא את המסמך המסווג של הילית...", 0);
+                    }, 1500);
+
+                }, 100);
+            }, 300);
+        });
+
+        function runOsintLog() {
+            const osintFacts = [
+                "> Initiating WebRTC local IP leak test...",
+                "> Local network mapping... SUCCESS.",
+                "> Canvas Fingerprinting active.",
+                "> Cross-referencing browser timezone and locale.",
+                "> Extracting EXIF metadata from local caches...",
+                "> Geolocation coordinates derived.",
+                "> Harvesting digital footprint across connected nodes...",
+                "> DOSSIER COMPILATION COMPLETE."
+            ];
+            let factIndex = 0;
+            const logInterval = setInterval(() => {
+                if (factIndex < osintFacts.length) {
+                    osintLogText.innerHTML += osintFacts[factIndex] + "<br><br>";
+                    osintLogText.scrollTop = osintLogText.scrollHeight;
+                    factIndex++;
+                } else { clearInterval(logInterval); }
+            }, 1200);
+        }
+
+        function typeScarySearch(text, i) {
+            if (i === 0) {
+                creepySearchBox.innerHTML = "";
+                typeSound.currentTime = 0;
+                typeSound.play().catch(e => { });
+            }
+            if (i < text.length) {
+                creepySearchBox.innerHTML += text.charAt(i);
+                setTimeout(() => typeScarySearch(text, i + 1), 60);
+            } else {
+                typeSound.pause();
+                setTimeout(() => { goNextBtn.style.display = 'block'; }, 1000);
+            }
+        }
+
+        function openClassifiedDocument() {
+            document.getElementById('browser-search-area').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('browser-search-area').style.display = 'none';
+                docElement.style.display = 'flex';
+
+                setTimeout(() => {
+                    docElement.classList.add('open');
+                    setTimeout(() => {
+                        const riddleString = "כדי לקבל גישה לתיק החקירה המלא, המערכת דורשת אימות קולי.\n\nאמרי את סיסמת הגישה למיקרופון עכשיו.\n\nרמז לסיסמה:\n'נמצא בין מקום עם עצים לקוצים\nהוא ימצא שביל אלייה.\nהוא מעל, היא תחכה עשרים בנות כי היו לפנייה\nהיא הלכה והוא לבד'\n\n מהי הסיסמה?";
+                        typeRiddleInDoc(riddleString, 0);
+                    }, 1000);
+                }, 100);
+            }, 500);
+        }
+
+        function typeRiddleInDoc(text, i) {
+            if (i === 0) {
+                docRiddleText.innerHTML = "";
+                typeSound.currentTime = 0;
+                typeSound.play().catch(e => { });
+            }
+
+            if (i < text.length) {
+                let char = text.charAt(i);
+                if (char === '\n') {
+                    docRiddleText.appendChild(document.createElement('br'));
+                } else {
+                    let span = document.createElement('span');
+                    span.className = 'riddle-char';
+                    span.style.display = 'inline-block';
+                    span.innerText = char === ' ' ? '\u00A0' : char;
+                    docRiddleText.appendChild(span);
+                }
+                setTimeout(() => typeRiddleInDoc(text, i + 1), 40);
+            } else {
+                typeSound.pause();
+                voiceAuth.style.display = 'flex';
+                startVoiceRecognition();
+            }
+        }
+
+        let recognition;
+        let isAuthSuccess = false;
+
+        function startVoiceRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+            if (!SpeechRecognition) {
+                voiceFeedback.innerHTML = "הדפדפן שלך לא תומך בזיהוי קולי.";
+                return;
+            }
+
+            recognition = new SpeechRecognition();
+            recognition.lang = 'he-IL';
+            recognition.interimResults = false;
+            recognition.maxAlternatives = 1;
+
+            recognition.onresult = function (event) {
+                const speechResult = event.results[0][0].transcript.trim();
+
+                if (speechResult.includes("עושה ביד")) {
+                    isAuthSuccess = true;
+                    recognition.stop();
+
+                    successSound.play().catch(e => console.log(e));
+                    vaultSong.play().catch(e => console.log(e));
+
+                    voiceFeedback.style.color = "#0f0";
+                    voiceFeedback.innerHTML = "סיסמה התקבלה! מאתחל מערכת...";
+
+                    const stamp = document.createElement('div');
+                    stamp.className = 'access-granted-stamp';
+                    stamp.innerHTML = "ACCESS GRANTED";
+                    docElement.appendChild(stamp);
+
+                    if (profileCam.srcObject) { profileCam.srcObject.getTracks().forEach(track => track.stop()); }
+
+                    // --- תהליך הקריסה העדכני ---
+                    setTimeout(() => {
+                        document.body.classList.add('shaking');
+                    }, 1000);
+               
+                    // מפעיל את הסדקים
+                    setTimeout(() => {
+                        solidTealBg.style.display = 'none';
+                        wallContainer.style.visibility = 'visible';
+                        crackOverlay.style.display = 'block';
+                        document.querySelectorAll('.crack-path').forEach(p => p.classList.add('crack-active'));
+                        crashSound.play().catch(e => { });
+                    }, 2000);
+
+                    // נפילת האותיות (איטי יותר ומחוץ למיקום)
+                    setTimeout(() => {
+                        document.querySelectorAll('.riddle-char').forEach(span => {
+                            setTimeout(() => {
+                                span.classList.add('gravity-fall');
+                            }, Math.random() * 2000);
+                        });
+                    }, 3500);
+
+                    // נפילת הממשק
+                    setTimeout(() => {
+                        const elementsToFall = [
+                            stamp, voiceAuth, document.querySelector('.doc-header'),
+                            creepyBrowser, fakeComputer, fakeChrome, document.querySelector('.taskbar')
+                        ];
+
+                        docElement.style.background = 'transparent';
+                        docElement.style.border = 'none';
+                        docElement.style.boxShadow = 'none';
+
+                        elementsToFall.forEach((el, index) => {
+                            if (el) {
+                                setTimeout(() => {
+                                    el.classList.add('gravity-fall');
+                                }, index * 250);
+                            }
+                        });
+                    }, 5500);
+
+                    // שבירת הקיר וגילוי האלבום הלחיץ
+                    setTimeout(() => {
+                        document.body.classList.remove('shaking');
+                        crackOverlay.style.display = 'none';
+
+                        albumBackground.style.display = 'block';
+                        setTimeout(() => albumBackground.style.opacity = '1', 50);
+
+                        document.querySelectorAll('.shard').forEach(shard => {
+                            setTimeout(() => {
+                                shard.classList.add('gravity-fall');
+                            }, Math.random() * 1500);
+                        });
+
+                        setTimeout(() => {
+                            albumBackground.classList.add('clickable');
+                        }, 2500);
+
+                    }, 7500);
+
+                } else {
+                    redErrorPopup.style.display = 'flex';
+                    errorSound.currentTime = 0;
+                    errorSound.play().catch(e => { });
+                    voiceFeedback.style.opacity = '0';
+
+                    setTimeout(() => {
+                        redErrorPopup.style.display = 'none';
+                        voiceFeedback.style.opacity = '1';
+                    }, 1500);
+                }
+            };
+
+            recognition.onerror = function (event) { console.log("שגיאה במיקרופון: " + event.error); };
+            recognition.onend = function () { if (!isAuthSuccess) { try { recognition.start(); } catch (e) { } } };
+
+            try {
+                recognition.start();
+                voiceFeedback.innerHTML = "מאזין... דברי אל המחשב עכשיו.";
+            } catch (e) { console.log(e); }
+        }
+
+        // --- לחיצה על האלבום (נופל אחורה כדף) ---
+        albumBackground.addEventListener('click', function () {
+            if (this.classList.contains('clickable')) {
+                this.classList.remove('clickable');
+
+                this.classList.add('fall-back');
+
+                setTimeout(() => {
+                    if (document.getElementById('fake-desktop')) document.getElementById('fake-desktop').remove();
+                    if (document.getElementById('creepy-browser')) document.getElementById('creepy-browser').remove();
+                    if (wallContainer) wallContainer.remove();
+                    this.remove();
+                }, 1500);
+            }
+        });
+    </script>
+</body>
+</html>
