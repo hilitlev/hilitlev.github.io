@@ -222,7 +222,7 @@
         <div id="intro-text-1" class="intro-text">את זוכרת מה אנחנו עושים?</div>
         <div id="intro-text-2" class="intro-text">פאזלים</div>
     </div>
-
+    <audio id="winAudio" src="b.mp3" preload="auto"></audio>
     <button class="skip-btn" onclick="forceWin()">דילוג >> </button>
     <h1 class="main-title">פאזלים זה החיים, ככה מה לעשות?</h1>
 
@@ -243,6 +243,7 @@
                     את כל כך יפה, חכמה, מצחיקה ומדהימה.<br>
                     יום הולדת 18 שמח.<br>
                     את מדהימה.<br>
+                    נתראה בשנה הבאה<br />
                     מזל טוב,<br>
                     לב 3&gt;
                 </div>
@@ -712,6 +713,12 @@
         // ================= סצנת הניצחון (המכתב החלק) =================
         function forceWin() {
             // הוספנו תמיכה גם בלחיצה על "דילוג" אם הפאזל לא הושלם
+            const winAudio = document.getElementById('winAudio');
+            if (winAudio) {
+                winAudio.volume = 0.05;
+                winAudio.currentTime = 0; // מאפס את השיר למקרה שהתנגן קודם
+                winAudio.play().catch(e => console.log("שגיאת הפעלת שמע: ", e));
+            }
             if (puzzle && puzzle.polyPieces && puzzle.polyPieces.length > 1) {
                 // מרכיב את הפאזל מיידית מאחורי הקלעים
                 puzzle.polyPieces[0].pieces = puzzle.pieces.flat();
