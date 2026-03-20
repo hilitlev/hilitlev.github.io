@@ -48,6 +48,7 @@
             background-size: 100% 100%; /* מותח את התמונה כדי שתכסה הכל בצורה מושלמת */
             background-position: center;
             background-repeat: no-repeat;
+            background-color: #000;
             z-index: 2; /* מאחורי קיר הטורקיז, אבל מעל ה-iframe */
             opacity: 0;
             display: none;
@@ -169,12 +170,12 @@
         }
 
         .crack-path {
-            stroke-dasharray: 500;
-            stroke-dashoffset: 500;
+            stroke-dasharray: 100;
+            stroke-dashoffset: 100;
         }
 
         .crack-active {
-            animation: draw-crack 1s ease-out forwards;
+            animation: draw-crack 0.8s ease-out forwards;
         }
 
         @keyframes draw-crack {
@@ -838,7 +839,8 @@
     <audio id="typeSound" src="type.mp3" preload="auto" loop></audio>
     <audio id="errorSound" src="error.mp3" preload="auto"></audio>
     <audio id="crashSound" src="crash.mp3" preload="auto"></audio>
-    <audio id="successSound" src="success.mp3" preload="auto"></audio>
+    <audio id="crackShortSound" src="success.mp3" preload="auto"></audio>
+    <audio id="successSound" src="higig.mp3" preload="auto"></audio>
     <audio id="vaultSong" src="song.mp3" preload="auto"></audio>
 
     <iframe id="next-page-frame" src="entrance.html"></iframe>
@@ -861,8 +863,9 @@
     </div>
 
     <svg id="crack-overlay" viewBox="0 0 100 100" preserveAspectRatio="none">
-        <path d="M 50 50 L 35 15 L 20 0 M 50 50 L 70 30 L 90 10 L 100 0 M 50 50 L 40 70 L 10 100 M 50 50 L 65 80 L 80 100 M 50 50 L 10 40 L 0 30 M 50 50 L 85 55 L 100 65" stroke="#111" stroke-width="0.8" fill="none" class="crack-path" />
-        <path d="M 35 15 L 10 40 M 70 30 L 85 55 M 40 70 L 65 80" stroke="#111" stroke-width="0.4" fill="none" class="crack-path" />
+        <path id="crack-path-1" d="M 50 50 L 35 15 L 20 0 M 50 50 L 10 40" stroke="#111" stroke-width="1.5" fill="none" class="crack-path" pathLength="100" />
+        <path id="crack-path-2" d="M 50 50 L 70 30 L 100 0 M 50 50 L 85 55" stroke="#111" stroke-width="1.5" fill="none" class="crack-path" pathLength="100" />
+        <path id="crack-path-3" d="M 50 50 L 40 70 L 10 100 M 50 50 L 65 80 L 80 100 M 35 15 L 10 40 M 70 30 L 85 55 M 40 70 L 65 80" stroke="#111" stroke-width="2" fill="none" class="crack-path" pathLength="100" />
     </svg>
 
     <div class="glitch-overlay" id="black-screen"></div>
@@ -960,7 +963,7 @@
 
             <div class="voice-auth-container" id="voice-auth">
                 <div class="mic-icon">🎤</div>
-                <div id="voice-feedback">מערכת זיהוי קולי פעילה. אנא אמרי את סיסמת הגישה עכשיו.</div>
+                <div id="voice-feedback">מערכת זיהוי קולי פעילה. אנא אמרי את התשובה למיקרופון.</div>
             </div>
         </div>
     </div>
@@ -982,6 +985,7 @@
         const crashSound = document.getElementById('crashSound');
         const successSound = document.getElementById('successSound');
         const vaultSong = document.getElementById('vaultSong');
+        const crackShortSound = document.getElementById('crackShortSound');
 
         const fakeDesktop = document.getElementById('fake-desktop');
         const blackScreen = document.getElementById('black-screen');
@@ -1180,6 +1184,28 @@
             }
         }
 
+        /* ============================
+           מערך שלוש החידות
+        ============================ */
+        const securityRiddles = [
+            {
+                text: "שלב אימות 1: חימום.\n\nאמרי את התשובה למיקרופון:\n\n'היה מקום בו הוא היה מאושר,\nהוא התעסק בריקוד ובשירה.\nהוא ביקש רק דבר אחד, בבקשה.'\n\nמה הוא ביקש?",
+                answer: "נשיקה"
+            },
+            {
+                text: "שלב אימות 2: מתקרבים.\nהקיר של המערכת מתחיל להיסדק...\n\nאמרי את התשובה למיקרופון:\n\n'הוא שמע את כל הסיפורים.\nממש את כל הסיפורים המופרעים,\nהם היו יפים כל כך, היו כל סיפוריו'\n\nמה הוא יגיד עכשיו?",
+                answer: "אבל את"
+            },
+            {
+                text: "כדי לקבל גישה לשלב הבא, המערכת דורשת אימות קולי סופי.\nאמרי את סיסמת הגישה למיקרופון עכשיו.\n\nרמז לסיסמה:\n'נמצא בין מקום עם עצים לקוצים\nהוא ימצא שביל אלייה.\nהוא מעל, היא תחכה עשרים בנות כי היו לפנייה\nהיא הלכה והוא לבד...'\n\n מהי הסיסמה?",
+                answer: "עושה ביד"
+            }
+        ];
+
+        let currentRiddleIndex = 0;
+        let isAuthSuccess = false;
+        let recognition;
+
         function openClassifiedDocument() {
             document.getElementById('browser-search-area').style.opacity = '0';
             setTimeout(() => {
@@ -1189,11 +1215,16 @@
                 setTimeout(() => {
                     docElement.classList.add('open');
                     setTimeout(() => {
-                        const riddleString = "כדי לקבל גישה לתיק החקירה המלא, המערכת דורשת אימות קולי.\n\nאמרי את סיסמת הגישה למיקרופון עכשיו.\n\nרמז לסיסמה:\n'נמצא בין מקום עם עצים לקוצים\nהוא ימצא שביל אלייה.\nהוא מעל, היא תחכה עשרים בנות כי היו לפנייה\nהיא הלכה והוא לבד...'\n\n מהי הסיסמה?";
-                        typeRiddleInDoc(riddleString, 0);
+                        loadCurrentRiddle();
                     }, 1000);
                 }, 100);
             }, 500);
+        }
+
+        function loadCurrentRiddle() {
+            voiceAuth.style.display = 'none';
+            isAuthSuccess = false;
+            typeRiddleInDoc(securityRiddles[currentRiddleIndex].text, 0);
         }
 
         function typeRiddleInDoc(text, i) {
@@ -1222,9 +1253,6 @@
             }
         }
 
-        let recognition;
-        let isAuthSuccess = false;
-
         function startVoiceRecognition() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
@@ -1240,87 +1268,111 @@
 
             recognition.onresult = function (event) {
                 const speechResult = event.results[0][0].transcript.trim();
+                const expectedAnswer = securityRiddles[currentRiddleIndex].answer;
 
-                if (speechResult.includes("עושה ביד")) {
+                if (speechResult.includes(expectedAnswer)) {
                     isAuthSuccess = true;
-                    recognition.stop();
+                    try { recognition.stop(); } catch (e) { }
 
-                    successSound.play().catch(e => console.log(e));
-                    vaultSong.play().catch(e => console.log(e));
+                    if (currentRiddleIndex < 2) {
+                        // --- שבירה חלקית והמתנה של 5 שניות ---
+                        voiceFeedback.style.color = "#0f0";
+                        voiceFeedback.innerHTML = `אימות שלב ${currentRiddleIndex + 1} עבר בהצלחה.`;
 
-                    voiceFeedback.style.color = "#0f0";
-                    voiceFeedback.innerHTML = "סיסמה התקבלה! מאתחל מערכת...";
+                        if (crackShortSound) {
+                            crackShortSound.currentTime = 0;
+                            crackShortSound.play().catch(e => { });
+                        }
 
-                    const stamp = document.createElement('div');
-                    stamp.className = 'access-granted-stamp';
-                    stamp.innerHTML = "ACCESS GRANTED";
-                    docElement.appendChild(stamp);
-
-                    if (profileCam.srcObject) { profileCam.srcObject.getTracks().forEach(track => track.stop()); }
-
-                    // --- תהליך הקריסה העדכני ---
-                    setTimeout(() => {
+                        // רעידה קצרה למסך שלא שוברת את ה-Layout
                         document.body.classList.add('shaking');
-                    }, 1000);
-               
-                    // מפעיל את הסדקים
-                    setTimeout(() => {
-                        solidTealBg.style.display = 'none';
-                        wallContainer.style.visibility = 'visible';
+                        setTimeout(() => document.body.classList.remove('shaking'), 500);
+
                         crackOverlay.style.display = 'block';
-                        document.querySelectorAll('.crack-path').forEach(p => p.classList.add('crack-active'));
-                        crashSound.play().catch(e => { });
-                    }, 2000);
-
-                    // נפילת האותיות (איטי יותר ומחוץ למיקום)
-                    setTimeout(() => {
-                        document.querySelectorAll('.riddle-char').forEach(span => {
-                            setTimeout(() => {
-                                span.classList.add('gravity-fall');
-                            }, Math.random() * 2000);
-                        });
-                    }, 3500);
-
-                    // נפילת הממשק
-                    setTimeout(() => {
-                        const elementsToFall = [
-                            stamp, voiceAuth, document.querySelector('.doc-header'),
-                            creepyBrowser, fakeComputer, fakeChrome, document.querySelector('.taskbar')
-                        ];
-
-                        docElement.style.background = 'transparent';
-                        docElement.style.border = 'none';
-                        docElement.style.boxShadow = 'none';
-
-                        elementsToFall.forEach((el, index) => {
-                            if (el) {
-                                setTimeout(() => {
-                                    el.classList.add('gravity-fall');
-                                }, index * 250);
-                            }
-                        });
-                    }, 5500);
-
-                    // שבירת הקיר וגילוי האלבום הלחיץ
-                    setTimeout(() => {
-                        document.body.classList.remove('shaking');
-                        crackOverlay.style.display = 'none';
-
-                        albumBackground.style.display = 'block';
-                        setTimeout(() => albumBackground.style.opacity = '1', 50);
-
-                        document.querySelectorAll('.shard').forEach(shard => {
-                            setTimeout(() => {
-                                shard.classList.add('gravity-fall');
-                            }, Math.random() * 1500);
-                        });
+                        document.getElementById(`crack-path-${currentRiddleIndex + 1}`).classList.add('crack-active');
 
                         setTimeout(() => {
-                            albumBackground.classList.add('clickable');
-                        }, 2500);
+                            currentRiddleIndex++;
+                            loadCurrentRiddle();
+                        }, 5000);
 
-                    }, 7500);
+                    } else {
+                        // --- שבירה מלאה וקריסה בסוף (חידה 3) ---
+                        successSound.play().catch(e => console.log(e));
+                        vaultSong.play().catch(e => console.log(e));
 
+                        voiceFeedback.style.color = "#0f0";
+                        voiceFeedback.innerHTML = "סיסמה התקבלה! מאתחל מערכת...";
+
+                        const stamp = document.createElement('div');
+                        stamp.className = 'access-granted-stamp';
+                        stamp.innerHTML = "ACCESS GRANTED";
+                        docElement.appendChild(stamp);
+
+                        try {
+                            if (profileCam.srcObject && typeof profileCam.srcObject.getTracks === 'function') {
+                                profileCam.srcObject.getTracks().forEach(track => track.stop());
+                            }
+                        } catch (e) { console.error("Camera stop gracefully failed", e); }
+
+                        setTimeout(() => {
+                            document.body.classList.add('shaking');
+                        }, 1000);
+
+                        setTimeout(() => {
+                            solidTealBg.style.display = 'none';
+                            wallContainer.style.visibility = 'visible';
+                            crackOverlay.style.display = 'block';
+                            document.getElementById('crack-path-3').classList.add('crack-active');
+                            crashSound.play().catch(e => { });
+                        }, 2000);
+
+                        setTimeout(() => {
+                            document.querySelectorAll('.riddle-char').forEach(span => {
+                                setTimeout(() => {
+                                    span.classList.add('gravity-fall');
+                                }, Math.random() * 2000);
+                            });
+                        }, 3500);
+
+                        setTimeout(() => {
+                            const elementsToFall = [
+                                stamp, voiceAuth, document.querySelector('.doc-header'),
+                                creepyBrowser, fakeComputer, fakeChrome, document.querySelector('.taskbar')
+                            ];
+
+                            docElement.style.background = 'transparent';
+                            docElement.style.border = 'none';
+                            docElement.style.boxShadow = 'none';
+
+                            elementsToFall.forEach((el, index) => {
+                                if (el) {
+                                    setTimeout(() => {
+                                        el.classList.add('gravity-fall');
+                                    }, index * 250);
+                                }
+                            });
+                        }, 5500);
+
+                        setTimeout(() => {
+                            document.body.classList.remove('shaking');
+                            crackOverlay.style.display = 'none';
+
+                            albumBackground.style.display = 'block';
+                            setTimeout(() => albumBackground.style.opacity = '1', 50);
+
+                            document.querySelectorAll('.shard').forEach(shard => {
+                                setTimeout(() => {
+                                    shard.classList.add('gravity-fall');
+                                }, Math.random() * 1500);
+                            });
+
+                            setTimeout(() => {
+                                albumBackground.classList.add('clickable');
+                            }, 2500);
+
+                        }, 7500);
+                    }
                 } else {
                     redErrorPopup.style.display = 'flex';
                     errorSound.currentTime = 0;
@@ -1343,7 +1395,6 @@
             } catch (e) { console.log(e); }
         }
 
-        // --- לחיצה על האלבום (נופל אחורה כדף) ---
         albumBackground.addEventListener('click', function () {
             if (this.classList.contains('clickable')) {
                 this.classList.remove('clickable');

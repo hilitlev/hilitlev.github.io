@@ -232,7 +232,7 @@
         <div class="flipper">
             <div class="front-puzzle-img" id="solved-image"></div>
             <div class="back-letter" id="letter-back">
-                <div class="letter-content" style="font-size: 2.2rem;">
+                <div class="letter-content" style="font-size: 1.87rem;">
                     הילית,<br>
                     את בן האדם הכי מדהים שהכרתי.<br>
                     מרגיש לי שעבר חודש, אבל מסתבר ששנה.<br>
@@ -745,19 +745,17 @@
             createHearts();
 
             // היפוך סינמטי מטורף במרכז המסך למכתב המרגש
-            setTimeout(() => {
-                flipContainer.classList.add('flipped');
-                const clickHint = document.getElementById('click-hint');
-                clickHint.style.opacity = '1';
+            flipContainer.addEventListener('click', function handleFirstClick() {
+                // סיבוב הכרטיס
+                this.classList.toggle('flipped');
 
-                flipContainer.style.cursor = 'pointer';
-                flipContainer.addEventListener('click', function () {
-                    this.classList.toggle('flipped');
-                    clickHint.innerText = this.classList.contains('flipped') ? 'לחצי על המכתב כדי לראות את התמונה' : 'לחצי על התמונה כדי לקרוא את המכתב';
-                });
-
-                setTimeout(() => canvasDiv.style.display = 'none', 1000);
-            }, 1000);
+                // עדכון הרמז
+                if (this.classList.contains('flipped')) {
+                    clickHint.innerText = 'לחצי על המכתב כדי לראות את התמונה';
+                } else {
+                    clickHint.innerText = 'לחצי על התמונה כדי לקרוא את המכתב';
+                }
+            });
         }
 
         function createHearts() {
